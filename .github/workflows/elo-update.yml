@@ -1,0 +1,37 @@
+name: FACEIT ELO Auto Update
+
+on:
+  schedule:
+  - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Repo auschecken
+      uses: actions/checkout@v3
+
+    - name: 🟢 Node.js einrichten
+      uses: actions/setup-node@v3
+      with:
+        node-version: "20"
+
+    - name: 📦 Abhängigkeiten installieren
+      run: npm install
+
+    - name: 🧠 Puppeteer Script ausführen
+      env:
+        FACEIT_API_KEY: ${{ secrets.FACEIT_API_KEY }}
+      run: npm start
+
+    - name: 🔁 Änderungen committen und pushen
+      run: |
+        git config user.name "faceit-bot"
+        git config user.email "faceit-bot@localhost"
+        git add index.html
+        git add data/*.json || echo "Keine JSON-Dateien zum Hinzufügen"
+        git commit -m "📊 Auto-Update: $(date -u)" || echo "🟡 Keine Änderungen zu committen"
+        git push
