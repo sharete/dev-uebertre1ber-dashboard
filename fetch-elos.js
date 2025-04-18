@@ -1,4 +1,4 @@
-// Dashboard Generator Script – mit Haupt- und Detailzeile (neu aufgebaut)
+// generate_dashboard.js – aktualisiert ohne Tooltip, mit Details unter Nickname
 
 const fs = require("fs");
 const path = require("path");
@@ -236,26 +236,12 @@ function getPeriodStart(range) {
       winrate, matches, lastMatch
     } = p;
 
-    const tooltip = `<div class="tooltip">
-      <a href="${p.faceitUrl}" target="_blank" class="nickname-link">${p.nickname}</a>
-      <div class="tooltip-content">
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono">
-          <div>Kills:</div><div>${recentStats.kills}</div>
-          <div>Assists:</div><div>${recentStats.assists}</div>
-          <div>Deaths:</div><div>${recentStats.deaths}</div>
-          <div>K/D:</div><div>${recentStats.kd}</div>
-          <div>ADR:</div><div>${recentStats.adr}</div>
-          <div>HS%:</div><div>${recentStats.hsPercent}</div>
-        </div>
-      </div>
-    </div>`.trim();
-
     const mainRow = `
       <tr class="player-row" data-player-id="${playerId}" data-elo="${elo}">
         <td class="p-2">
           <div class="flex items-center gap-2">
             <span class="cursor-pointer toggle-details text-blue-400">▸</span>
-            ${tooltip}
+            <a href="${p.faceitUrl}" target="_blank" class="nickname-link">${p.nickname}</a>
           </div>
         </td>
         <td class="p-2 elo-now">${elo}</td>
@@ -271,11 +257,19 @@ function getPeriodStart(range) {
 
     const detailRow = `
       <tr class="details-row hidden bg-white/5" data-player-id="${playerId}">
-        <td colspan="7" class="p-2 text-sm text-white/80 pl-10">
-          <div><strong>Häufigster Mitspieler:</strong> ${partnerNickname !== "—"
-            ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
-            : "—"}</div>
-          <div><strong>Winrate mit ihm:</strong> ${partnerWinrate}</div>
+        <td colspan="7" class="p-3 text-sm text-white/80 pl-10 leading-relaxed">
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            <div><strong>Kills:</strong> ${recentStats.kills}</div>
+            <div><strong>Assists:</strong> ${recentStats.assists}</div>
+            <div><strong>Deaths:</strong> ${recentStats.deaths}</div>
+            <div><strong>K/D:</strong> ${recentStats.kd}</div>
+            <div><strong>ADR:</strong> ${recentStats.adr}</div>
+            <div><strong>HS%:</strong> ${recentStats.hsPercent}</div>
+            <div><strong>Häufigster Mitspieler:</strong> ${partnerNickname !== "—"
+              ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
+              : "—"}</div>
+            <div><strong>Winrate mit ihm:</strong> ${partnerWinrate}</div>
+          </div>
         </td>
       </tr>
     `.trim();

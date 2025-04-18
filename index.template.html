@@ -10,20 +10,9 @@
     body { background: #1e1f26; font-family: 'Inter', sans-serif; }
     .nickname-link { text-decoration: none; transition: all .2s ease; color: #fff; position: relative; display: inline-block; }
     .nickname-link:hover { color: #38bdf8; text-decoration: underline; text-shadow: 0 0 6px #38bdf8; }
-    .tooltip { position: relative; display: inline-block; }
-    .tooltip-content {
-      visibility: hidden; opacity: 0;
-      background: rgba(0,0,0,0.9); color: #fff;
-      padding: .5rem .75rem; border-radius: .5rem;
-      position: absolute; z-index: 10; top:125%; left:0;
-      font-size:.75rem; line-height:1.25rem; white-space: normal; max-width:320px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.4);
-      transition: opacity .3s ease, visibility .3s ease;
-      pointer-events: none;
-    }
-    .tooltip:hover .tooltip-content { visibility: visible; opacity: 1; }
     .toggle-details { font-size: 1rem; user-select: none; }
     .details-row.hidden { display: none; }
+    .details-row td { border-top: 1px solid rgba(255,255,255,0.05); }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
