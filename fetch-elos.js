@@ -1,4 +1,4 @@
-// generate_dashboard.js – FINAL VERSION mit BestMates (komplett)
+// generate_dashboard.js – FINAL VERSION mit BestMates und korrektem K/R
 
 const fs = require("fs");
 const path = require("path");
@@ -66,6 +66,16 @@ async function fetchMatchStats(matchId, playerId) {
   if (!data?.rounds) return null;
   const players = data.rounds[0].teams.flatMap(t => t.players);
   const mapStats = Object.fromEntries(players.map(p => [p.player_id, p.player_stats]));
+  const score = data.rounds[0].round_stats["Score"] || "0 / 0";
+  const [a, b] = score.split(" / ").map(Number);
+  const roundCount = a + b;
+
+  for (const p of players) {
+    if (mapStats[p.player_id]) {
+      mapStats[p.player_id].__rounds = roundCount;
+    }
+  }
+
   cache[matchId] = mapStats;
   return mapStats[playerId] || null;
 }
@@ -85,7 +95,7 @@ async function fetchRecentStats(playerId) {
     assists += +s.Assists || 0;
     adrTotal += +s.ADR || 0;
     hs += +s.Headshots || 0;
-    rounds += +s.Rounds || 0;
+    if (typeof s.__rounds === "number") rounds += s.__rounds;
     count++;
   }
 
