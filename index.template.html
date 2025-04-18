@@ -92,15 +92,15 @@
     document.getElementById("eloRange").addEventListener("change", e => updateEloDiff(e.target.value));
     updateEloDiff("daily");
 
-    document.querySelectorAll(".toggle-details").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const mainRow = btn.closest("tr");
-        const playerId = mainRow.dataset.playerId;
-        const detailRow = document.querySelector(`.details-row[data-player-id="${playerId}"]`);
-        const isOpen = !detailRow.classList.contains("hidden");
-        detailRow.classList.toggle("hidden");
-        btn.textContent = isOpen ? "▸" : "▾";
-      });
+    document.addEventListener("click", e => {
+      const btn = e.target.closest(".toggle-details");
+      if (!btn) return;
+      const row = btn.closest("tr");
+      const pid = row.dataset.playerId;
+      const detailRow = document.querySelector(`.details-row[data-player-id="${pid}"]`);
+      const isOpen = !detailRow.classList.contains("hidden");
+      detailRow.classList.toggle("hidden");
+      btn.textContent = isOpen ? "▸" : "▾";
     });
 
     document.querySelectorAll("th").forEach((header, colIdx) => {
