@@ -1,4 +1,4 @@
-// Dashboard Generator Script – mit neuem Tooltip & einklappbaren Details
+// Dashboard Generator Script – mit Haupt- und Detailzeile (neu aufgebaut)
 
 const fs = require("fs");
 const path = require("path");
@@ -250,8 +250,8 @@ function getPeriodStart(range) {
       </div>
     </div>`.trim();
 
-    return `
-      <tr data-player-id="${playerId}" data-elo="${elo}">
+    const mainRow = `
+      <tr class="player-row" data-player-id="${playerId}" data-elo="${elo}">
         <td class="p-2">
           <div class="flex items-center gap-2">
             <span class="cursor-pointer toggle-details text-blue-400">▸</span>
@@ -260,19 +260,27 @@ function getPeriodStart(range) {
         </td>
         <td class="p-2 elo-now">${elo}</td>
         <td class="p-2 elo-diff">-</td>
-        <td class="p-2 details-cell hidden">
-          ${partnerNickname !== "—"
-            ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
-            : "—"}
-        </td>
-        <td class="p-2 details-cell hidden">${partnerWinrate}</td>
         <td class="p-2">
           <img src="icons/levels/level_${level}_icon.png" width="24" height="24" title="Level ${level}">
         </td>
         <td class="p-2">${winrate}</td>
         <td class="p-2">${matches}</td>
         <td class="p-2">${lastMatch}</td>
-      </tr>`.trim();
+      </tr>
+    `.trim();
+
+    const detailRow = `
+      <tr class="details-row hidden bg-white/5" data-player-id="${playerId}">
+        <td colspan="7" class="p-2 text-sm text-white/80 pl-10">
+          <div><strong>Häufigster Mitspieler:</strong> ${partnerNickname !== "—"
+            ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
+            : "—"}</div>
+          <div><strong>Winrate mit ihm:</strong> ${partnerWinrate}</div>
+        </td>
+      </tr>
+    `.trim();
+
+    return `${mainRow}\n${detailRow}`;
   }).join("\n");
 
   const template = fs.readFileSync(TEMPLATE_FILE, "utf-8");

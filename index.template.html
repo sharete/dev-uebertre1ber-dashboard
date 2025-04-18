@@ -23,7 +23,7 @@
     }
     .tooltip:hover .tooltip-content { visibility: visible; opacity: 1; }
     .toggle-details { font-size: 1rem; user-select: none; }
-    .details-cell.hidden { display: none; }
+    .details-row.hidden { display: none; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
@@ -52,8 +52,6 @@
               <th class="text-left p-2 cursor-pointer">Nickname</th>
               <th class="text-left p-2 cursor-pointer">ELO</th>
               <th class="text-left p-2 cursor-pointer">Δ ELO</th>
-              <th class="text-left p-2 cursor-pointer details-cell">Häufigster Mitspieler (letzten 30 Matches)</th>
-              <th class="text-left p-2 cursor-pointer details-cell">Winrate mit häufigster Mitspieler (letzten 30 Matches)</th>
               <th class="text-left p-2 cursor-pointer">Level</th>
               <th class="text-left p-2 cursor-pointer">Winrate</th>
               <th class="text-left p-2 cursor-pointer">Matches</th>
@@ -81,7 +79,7 @@
       const snap = await fetch(`data/elo-${range}.json`).then(r => r.json());
       const lookup = Object.fromEntries(snap.map(p => [p.playerId, p.elo]));
 
-      document.querySelectorAll("tbody tr").forEach(row => {
+      document.querySelectorAll("tbody tr.player-row").forEach(row => {
         const pid = row.dataset.playerId;
         const now = +row.dataset.elo;
         const prev = lookup[pid];
@@ -105,10 +103,21 @@
     document.getElementById("eloRange").addEventListener("change", e => updateEloDiff(e.target.value));
     updateEloDiff("daily");
 
+    document.querySelectorAll(".toggle-details").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const mainRow = btn.closest("tr");
+        const playerId = mainRow.dataset.playerId;
+        const detailRow = document.querySelector(`.details-row[data-player-id="${playerId}"]`);
+        const isOpen = !detailRow.classList.contains("hidden");
+        detailRow.classList.toggle("hidden");
+        btn.textContent = isOpen ? "▸" : "▾";
+      });
+    });
+
     document.querySelectorAll("th").forEach((header, colIdx) => {
       header.addEventListener("click", () => {
         const table = header.closest("table");
-        const rows = Array.from(table.querySelectorAll("tbody tr"));
+        const rows = Array.from(table.querySelectorAll("tbody tr.player-row"));
         const asc = !header.classList.contains("asc");
         rows.sort((a,b) => {
           let aVal = a.children[colIdx].textContent.trim();
@@ -125,17 +134,12 @@
         });
         table.querySelectorAll("th").forEach(th => th.classList.remove("asc","desc"));
         header.classList.add(asc?"asc":"desc");
-        rows.forEach(r => table.querySelector("tbody").appendChild(r));
-      });
-    });
-
-    document.querySelectorAll(".toggle-details").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const row = btn.closest("tr");
-        const details = row.querySelectorAll(".details-cell");
-        const expanded = details[0].classList.contains("hidden");
-        details.forEach(cell => cell.classList.toggle("hidden"));
-        btn.textContent = expanded ? "▾" : "▸";
+        const tbody = table.querySelector("tbody");
+        rows.forEach(r => {
+          const detailRow = document.querySelector(`.details-row[data-player-id="${r.dataset.playerId}"]`);
+          tbody.appendChild(r);
+          tbody.appendChild(detailRow);
+        });
       });
     });
   </script>
