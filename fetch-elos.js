@@ -1,3 +1,5 @@
+// Dashboard Generator Script – mit neuem Tooltip & einklappbaren Details
+
 const fs = require("fs");
 const path = require("path");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
@@ -28,7 +30,7 @@ function writeJson(file, data) {
 function getHeaders() {
   return {
     Authorization: `Bearer ${FACEIT_API_KEY}`,
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "User-Agent": "Mozilla/5.0",
     Accept: "application/json",
     Referer: "https://www.faceit.com/",
     Origin: "https://www.faceit.com",
@@ -206,7 +208,7 @@ function getPeriodStart(range) {
     .map(l => l.split(/#|\/\//)[0].trim())
     .filter(Boolean);
 
-  const limit = await pLimit(5); // Max. 5 gleichzeitige Anfragen
+  const limit = await pLimit(5);
   const results = (
     await Promise.all(lines.map(id =>
       limit(async () => {
@@ -237,23 +239,33 @@ function getPeriodStart(range) {
     const tooltip = `<div class="tooltip">
       <a href="${p.faceitUrl}" target="_blank" class="nickname-link">${p.nickname}</a>
       <div class="tooltip-content">
-        Letzten 30 Matches:<br/>
-        Kills ${recentStats.kills} / Assists ${recentStats.assists} / Deaths ${recentStats.deaths}<br/>
-        K/D ${recentStats.kd} – ADR ${recentStats.adr} – HS% ${recentStats.hsPercent}
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono">
+          <div>Kills:</div><div>${recentStats.kills}</div>
+          <div>Assists:</div><div>${recentStats.assists}</div>
+          <div>Deaths:</div><div>${recentStats.deaths}</div>
+          <div>K/D:</div><div>${recentStats.kd}</div>
+          <div>ADR:</div><div>${recentStats.adr}</div>
+          <div>HS%:</div><div>${recentStats.hsPercent}</div>
+        </div>
       </div>
     </div>`.trim();
 
     return `
       <tr data-player-id="${playerId}" data-elo="${elo}">
-        <td class="p-2">${tooltip}</td>
+        <td class="p-2">
+          <div class="flex items-center gap-2">
+            <span class="cursor-pointer toggle-details text-blue-400">▸</span>
+            ${tooltip}
+          </div>
+        </td>
         <td class="p-2 elo-now">${elo}</td>
         <td class="p-2 elo-diff">-</td>
-        <td class="p-2">
+        <td class="p-2 details-cell hidden">
           ${partnerNickname !== "—"
             ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
             : "—"}
         </td>
-        <td class="p-2">${partnerWinrate}</td>
+        <td class="p-2 details-cell hidden">${partnerWinrate}</td>
         <td class="p-2">
           <img src="icons/levels/level_${level}_icon.png" width="24" height="24" title="Level ${level}">
         </td>
@@ -281,7 +293,7 @@ function getPeriodStart(range) {
         if (DateTime.fromISO(m.lastUpdated, { zone: "Europe/Berlin" }) >= start) {
           doUpdate = false;
         }
-      } catch { }
+      } catch {}
     }
     if (doUpdate) {
       writeJson(RANGE_FILES[range], latest);

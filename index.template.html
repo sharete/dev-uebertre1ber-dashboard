@@ -22,6 +22,8 @@
       pointer-events: none;
     }
     .tooltip:hover .tooltip-content { visibility: visible; opacity: 1; }
+    .toggle-details { font-size: 1rem; user-select: none; }
+    .details-cell.hidden { display: none; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
@@ -50,8 +52,8 @@
               <th class="text-left p-2 cursor-pointer">Nickname</th>
               <th class="text-left p-2 cursor-pointer">ELO</th>
               <th class="text-left p-2 cursor-pointer">Δ ELO</th>
-              <th class="text-left p-2 cursor-pointer">Häufigster Mitspieler (letzten 30 Matches)</th>
-              <th class="text-left p-2 cursor-pointer">Winrate mit häufigster Mitspieler (letzten 30 Matches)</th>
+              <th class="text-left p-2 cursor-pointer details-cell">Häufigster Mitspieler (letzten 30 Matches)</th>
+              <th class="text-left p-2 cursor-pointer details-cell">Winrate mit häufigster Mitspieler (letzten 30 Matches)</th>
               <th class="text-left p-2 cursor-pointer">Level</th>
               <th class="text-left p-2 cursor-pointer">Winrate</th>
               <th class="text-left p-2 cursor-pointer">Matches</th>
@@ -103,7 +105,6 @@
     document.getElementById("eloRange").addEventListener("change", e => updateEloDiff(e.target.value));
     updateEloDiff("daily");
 
-    // Tabellen-Sortierung
     document.querySelectorAll("th").forEach((header, colIdx) => {
       header.addEventListener("click", () => {
         const table = header.closest("table");
@@ -125,6 +126,16 @@
         table.querySelectorAll("th").forEach(th => th.classList.remove("asc","desc"));
         header.classList.add(asc?"asc":"desc");
         rows.forEach(r => table.querySelector("tbody").appendChild(r));
+      });
+    });
+
+    document.querySelectorAll(".toggle-details").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const row = btn.closest("tr");
+        const details = row.querySelectorAll(".details-cell");
+        const expanded = details[0].classList.contains("hidden");
+        details.forEach(cell => cell.classList.toggle("hidden"));
+        btn.textContent = expanded ? "▾" : "▸";
       });
     });
   </script>
