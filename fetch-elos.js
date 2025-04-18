@@ -1,4 +1,4 @@
-// generate_dashboard.js – FINAL COMPLETE 1:1 (mit K/R Fix)
+// generate_dashboard.js – FINAL VERSION mit BestMates (komplett)
 
 const fs = require("fs");
 const path = require("path");
@@ -64,16 +64,8 @@ async function fetchMatchStats(matchId, playerId) {
   if (!res) return null;
   const data = await safeJson(res);
   if (!data?.rounds) return null;
-
-  const roundStats = data.rounds[0].round_stats;
-  const totalRounds = +roundStats["Rounds"] || 0;
-
   const players = data.rounds[0].teams.flatMap(t => t.players);
-  const mapStats = Object.fromEntries(players.map(p => {
-    const stats = { ...p.player_stats, RoundsPlayed: totalRounds };
-    return [p.player_id, stats];
-  }));
-
+  const mapStats = Object.fromEntries(players.map(p => [p.player_id, p.player_stats]));
   cache[matchId] = mapStats;
   return mapStats[playerId] || null;
 }
@@ -93,7 +85,7 @@ async function fetchRecentStats(playerId) {
     assists += +s.Assists || 0;
     adrTotal += +s.ADR || 0;
     hs += +s.Headshots || 0;
-    rounds += +s.RoundsPlayed || 0;
+    rounds += +s.Rounds || 0;
     count++;
   }
 
@@ -182,6 +174,7 @@ async function fetchPlayerData(playerId) {
   const teammateStats = await fetchTeammateStats(playerId);
   const topMates = [...teammateStats].sort((a, b) => b.count - a.count).slice(0, 5);
   const worstMates = [...teammateStats].sort((a, b) => b.losses - a.losses).slice(0, 5);
+  const bestMates = [...teammateStats].sort((a, b) => b.wins - a.wins).slice(0, 5);
 
   return {
     playerId,
@@ -195,6 +188,7 @@ async function fetchPlayerData(playerId) {
     recentStats,
     topMates,
     worstMates,
+    bestMates,
   };
 }
 
