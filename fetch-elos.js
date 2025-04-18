@@ -1,4 +1,4 @@
-// generate_dashboard.js – FINAL COPYPASTE READY
+// generate_dashboard.js – FINAL COMPLETE 1:1 (mit K/R Fix & vollständigem Code)
 
 const fs = require("fs");
 const path = require("path");
@@ -77,7 +77,7 @@ async function fetchRecentStats(playerId) {
     hist.items.map(m => fetchMatchStats(m.match_id, playerId).catch(() => null))
   );
 
-  let kills = 0, deaths = 0, assists = 0, adrTotal = 0, hs = 0, count = 0;
+  let kills = 0, deaths = 0, assists = 0, adrTotal = 0, hs = 0, count = 0, rounds = 0;
   for (const s of statsArr) {
     if (!s) continue;
     kills += +s.Kills || 0;
@@ -85,6 +85,7 @@ async function fetchRecentStats(playerId) {
     assists += +s.Assists || 0;
     adrTotal += +s.ADR || 0;
     hs += +s.Headshots || 0;
+    rounds += +s.Rounds || 0;
     count++;
   }
 
@@ -95,7 +96,7 @@ async function fetchRecentStats(playerId) {
     kd: count && deaths ? (kills / deaths).toFixed(2) : "0.00",
     adr: count ? (adrTotal / count).toFixed(1) : "0.0",
     hsPercent: kills ? Math.round((hs / kills) * 100) + "%" : "0%",
-    kr: count ? (kills / count).toFixed(2) : "0.00",
+    kr: rounds ? (kills / rounds).toFixed(2) : "0.00",
   };
 }
 
@@ -247,8 +248,7 @@ function getPeriodStart(range) {
   <td class="p-2">${p.winrate}</td>
   <td class="p-2">${p.matches}</td>
   <td class="p-2">${p.lastMatch}</td>
-</tr>
-`.trim();
+</tr>`.trim();
 
     const statBlock = `
 <div class="mb-2">
@@ -280,8 +280,7 @@ function getPeriodStart(range) {
   <td colspan="7" class="p-4 bg-white/5 rounded-b-xl">
     ${statBlock + topMatesBlock + worstMatesBlock}
   </td>
-</tr>
-`.trim();
+</tr>`.trim();
 
     return mainRow + "\n" + detailRow;
   }).join("\n");
@@ -304,7 +303,7 @@ function getPeriodStart(range) {
         if (DateTime.fromISO(m.lastUpdated, { zone: "Europe/Berlin" }) >= start) {
           doUpdate = false;
         }
-      } catch { }
+      } catch {}
     }
     if (doUpdate) {
       writeJson(RANGE_FILES[range], latest);
