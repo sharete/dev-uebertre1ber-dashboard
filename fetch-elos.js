@@ -1,4 +1,4 @@
-// generate_dashboard.js – mit gruppierten Stat-Sektionen im Detailbereich
+// generate_dashboard.js – final komplett mit K/R und häufigstem Lose-Partner
 
 const fs = require("fs");
 const path = require("path");
@@ -95,6 +95,7 @@ async function fetchRecentStats(playerId) {
     kd: count && deaths ? (kills / deaths).toFixed(2) : "0.00",
     adr: count ? (adrTotal / count).toFixed(1) : "0.0",
     hsPercent: kills ? Math.round((hs / kills) * 100) + "%" : "0%",
+    kr: count ? (kills / count).toFixed(2) : "0.00",
   };
 }
 
@@ -103,7 +104,7 @@ async function fetchTeammateStats(playerId) {
   const hist = await safeJson(res) || { items: [] };
   if (hist.items.length === 0) return [];
 
-  const countMap = {}, winMap = {}, infoMap = {};
+  const countMap = {}, winMap = {}, loseMap = {}, infoMap = {};
   for (const m of hist.items) {
     const teams = m.teams;
     const winner = m.results?.winner;
@@ -116,7 +117,11 @@ async function fetchTeammateStats(playerId) {
       for (const p of members) {
         if (p.player_id === playerId) continue;
         countMap[p.player_id] = (countMap[p.player_id] || 0) + 1;
-        if (side === winner) winMap[p.player_id] = (winMap[p.player_id] || 0) + 1;
+        if (side === winner) {
+          winMap[p.player_id] = (winMap[p.player_id] || 0) + 1;
+        } else {
+          loseMap[p.player_id] = (loseMap[p.player_id] || 0) + 1;
+        }
         if (!infoMap[p.player_id]) {
           infoMap[p.player_id] = {
             nickname: p.nickname,
@@ -128,21 +133,20 @@ async function fetchTeammateStats(playerId) {
     }
   }
 
-  return Object.entries(countMap)
-    .map(([id, cnt]) => {
-      const { nickname, url } = infoMap[id] || {};
-      const wins = winMap[id] || 0;
-      return {
-        playerId: id,
-        nickname: nickname || "—",
-        url: url || "#",
-        count: cnt,
-        wins,
-        winrate: cnt ? `${Math.round((wins / cnt) * 100)}%` : "—",
-      };
-    })
-    .filter(p => p.nickname && p.nickname !== "—")
-    .sort((a, b) => b.count - a.count);
+  return Object.entries(countMap).map(([id, cnt]) => {
+    const { nickname, url } = infoMap[id] || {};
+    const wins = winMap[id] || 0;
+    const losses = loseMap[id] || 0;
+    return {
+      playerId: id,
+      nickname: nickname || "—",
+      url: url || "#",
+      count: cnt,
+      wins,
+      losses,
+      winrate: cnt ? `${Math.round((wins / cnt) * 100)}%` : "—",
+    };
+  }).filter(p => p.nickname && p.nickname !== "—").sort((a, b) => b.count - a.count);
 }
 
 async function fetchPlayerData(playerId) {
@@ -168,6 +172,7 @@ async function fetchPlayerData(playerId) {
   const recentStats = await fetchRecentStats(playerId);
   const teammateStats = await fetchTeammateStats(playerId);
   const topMate = teammateStats[0] || {};
+  const worstMate = [...teammateStats].sort((a, b) => b.losses - a.losses)[0] || {};
 
   return {
     playerId,
@@ -182,6 +187,8 @@ async function fetchPlayerData(playerId) {
     partnerNickname: topMate.nickname || "—",
     partnerUrl: topMate.url || "#",
     partnerWinrate: topMate.winrate || "—",
+    worstMateNickname: worstMate.nickname || "—",
+    worstMateUrl: worstMate.url || "#",
   };
 }
 
@@ -233,6 +240,7 @@ function getPeriodStart(range) {
       playerId, elo, level,
       recentStats,
       partnerNickname, partnerUrl, partnerWinrate,
+      worstMateNickname, worstMateUrl,
       winrate, matches, lastMatch
     } = p;
 
@@ -269,6 +277,7 @@ function getPeriodStart(range) {
                 <div><strong>K/D:</strong> ${recentStats.kd}</div>
                 <div><strong>ADR:</strong> ${recentStats.adr}</div>
                 <div><strong>HS%:</strong> ${recentStats.hsPercent}</div>
+                <div><strong>K/R:</strong> ${recentStats.kr}</div>
               </div>
             </div>
 
@@ -279,6 +288,9 @@ function getPeriodStart(range) {
                   ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
                   : "—"}</div>
                 <div><strong>Winrate mit ihm:</strong> ${partnerWinrate}</div>
+                <div><strong>Meiste Niederlagen mit:</strong> ${worstMateNickname !== "—"
+                  ? `<a href="${worstMateUrl}" target="_blank" class="nickname-link">${worstMateNickname}</a>`
+                  : "—"}</div>
               </div>
             </div>
 
