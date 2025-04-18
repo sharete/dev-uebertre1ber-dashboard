@@ -1,4 +1,4 @@
-// generate_dashboard.js – final komplett mit K/R und häufigstem Lose-Partner
+// generate_dashboard.js – FINAL COPYPASTE READY
 
 const fs = require("fs");
 const path = require("path");
@@ -146,7 +146,7 @@ async function fetchTeammateStats(playerId) {
       losses,
       winrate: cnt ? `${Math.round((wins / cnt) * 100)}%` : "—",
     };
-  }).filter(p => p.nickname && p.nickname !== "—").sort((a, b) => b.count - a.count);
+  }).filter(p => p.nickname && p.nickname !== "—");
 }
 
 async function fetchPlayerData(playerId) {
@@ -171,8 +171,8 @@ async function fetchPlayerData(playerId) {
 
   const recentStats = await fetchRecentStats(playerId);
   const teammateStats = await fetchTeammateStats(playerId);
-  const topMate = teammateStats[0] || {};
-  const worstMate = [...teammateStats].sort((a, b) => b.losses - a.losses)[0] || {};
+  const topMates = [...teammateStats].sort((a, b) => b.count - a.count).slice(0, 5);
+  const worstMates = [...teammateStats].sort((a, b) => b.losses - a.losses).slice(0, 5);
 
   return {
     playerId,
@@ -184,11 +184,8 @@ async function fetchPlayerData(playerId) {
     winrate: lifetime["Win Rate %"] || "—",
     matches: lifetime["Matches"] || "—",
     recentStats,
-    partnerNickname: topMate.nickname || "—",
-    partnerUrl: topMate.url || "#",
-    partnerWinrate: topMate.winrate || "—",
-    worstMateNickname: worstMate.nickname || "—",
-    worstMateUrl: worstMate.url || "#",
+    topMates,
+    worstMates,
   };
 }
 
@@ -236,70 +233,57 @@ function getPeriodStart(range) {
 
   const updatedTime = DateTime.now().setZone("Europe/Berlin").toFormat("yyyy-MM-dd HH:mm");
   const rows = results.map(p => {
-    const {
-      playerId, elo, level,
-      recentStats,
-      partnerNickname, partnerUrl, partnerWinrate,
-      worstMateNickname, worstMateUrl,
-      winrate, matches, lastMatch
-    } = p;
-
     const mainRow = `
-      <tr class="player-row" data-player-id="${playerId}" data-elo="${elo}">
-        <td class="p-2">
-          <div class="flex items-center gap-2">
-            <span class="cursor-pointer toggle-details text-blue-400">▸</span>
-            <a href="${p.faceitUrl}" target="_blank" class="nickname-link">${p.nickname}</a>
-          </div>
-        </td>
-        <td class="p-2 elo-now">${elo}</td>
-        <td class="p-2 elo-diff">-</td>
-        <td class="p-2">
-          <img src="icons/levels/level_${level}_icon.png" width="24" height="24" title="Level ${level}">
-        </td>
-        <td class="p-2">${winrate}</td>
-        <td class="p-2">${matches}</td>
-        <td class="p-2">${lastMatch}</td>
-      </tr>
-    `.trim();
+<tr class="player-row" data-player-id="${p.playerId}" data-elo="${p.elo}">
+  <td class="p-2">
+    <span class="toggle-details cursor-pointer select-none">▸</span>
+    <a href="${p.faceitUrl}" target="_blank" class="nickname-link ml-1">${p.nickname}</a>
+  </td>
+  <td class="p-2 elo-now">${p.elo}</td>
+  <td class="p-2 elo-diff">-</td>
+  <td class="p-2">
+    <img src="icons/levels/level_${p.level}_icon.png" width="24" height="24" title="Level ${p.level}">
+  </td>
+  <td class="p-2">${p.winrate}</td>
+  <td class="p-2">${p.matches}</td>
+  <td class="p-2">${p.lastMatch}</td>
+</tr>
+`.trim();
+
+    const statBlock = `
+<div class="mb-2">
+  <div class="font-semibold text-white/80 mb-1">📊 Stats aus den letzten 30 Matches:</div>
+  <div class="text-sm text-white/90">
+    Kills: ${p.recentStats.kills} | Assists: ${p.recentStats.assists} | Deaths: ${p.recentStats.deaths}<br/>
+    K/D: ${p.recentStats.kd} | K/R: ${p.recentStats.kr} | ADR: ${p.recentStats.adr} | HS%: ${p.recentStats.hsPercent}
+  </div>
+</div>`;
+
+    const topMatesBlock = `
+<div class="mb-2">
+  <div class="font-semibold text-white/80 mb-1">👥 Häufigste Mitspieler:</div>
+  <ul class="list-disc list-inside text-sm text-white/90">
+    ${p.topMates.map(m => `<li><a href="${m.url}" target="_blank" class="nickname-link">${m.nickname}</a> – ${m.count} Matches – Winrate: ${m.winrate}</li>`).join("\n")}
+  </ul>
+</div>`;
+
+    const worstMatesBlock = `
+<div class="mb-2">
+  <div class="font-semibold text-white/80 mb-1">💀 Meiste Niederlagen mit:</div>
+  <ul class="list-disc list-inside text-sm text-white/90">
+    ${p.worstMates.map(m => `<li><a href="${m.url}" target="_blank" class="nickname-link">${m.nickname}</a> – ${m.losses} Niederlagen</li>`).join("\n")}
+  </ul>
+</div>`;
 
     const detailRow = `
-      <tr class="details-row hidden bg-white/5" data-player-id="${playerId}">
-        <td colspan="7" class="p-3 text-sm text-white/80 pl-10 leading-relaxed">
-          <div class="space-y-4">
+<tr class="details-row hidden" data-player-id="${p.playerId}">
+  <td colspan="7" class="p-4 bg-white/5 rounded-b-xl">
+    ${statBlock + topMatesBlock + worstMatesBlock}
+  </td>
+</tr>
+`.trim();
 
-            <div>
-              <div class="font-semibold text-white/90 mb-1">📊 Stats aus den letzten 30 Matches:</div>
-              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-2">
-                <div><strong>Kills:</strong> ${recentStats.kills}</div>
-                <div><strong>Assists:</strong> ${recentStats.assists}</div>
-                <div><strong>Deaths:</strong> ${recentStats.deaths}</div>
-                <div><strong>K/D:</strong> ${recentStats.kd}</div>
-                <div><strong>ADR:</strong> ${recentStats.adr}</div>
-                <div><strong>HS%:</strong> ${recentStats.hsPercent}</div>
-                <div><strong>K/R:</strong> ${recentStats.kr}</div>
-              </div>
-            </div>
-
-            <div>
-              <div class="font-semibold text-white/90 mb-1">👥 Mitspieler-Analyse:</div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-                <div><strong>Häufigster Mitspieler:</strong> ${partnerNickname !== "—"
-                  ? `<a href="${partnerUrl}" target="_blank" class="nickname-link">${partnerNickname}</a>`
-                  : "—"}</div>
-                <div><strong>Winrate mit ihm:</strong> ${partnerWinrate}</div>
-                <div><strong>Meiste Niederlagen mit:</strong> ${worstMateNickname !== "—"
-                  ? `<a href="${worstMateUrl}" target="_blank" class="nickname-link">${worstMateNickname}</a>`
-                  : "—"}</div>
-              </div>
-            </div>
-
-          </div>
-        </td>
-      </tr>
-    `.trim();
-
-    return `${mainRow}\n${detailRow}`;
+    return mainRow + "\n" + detailRow;
   }).join("\n");
 
   const template = fs.readFileSync(TEMPLATE_FILE, "utf-8");
@@ -320,7 +304,7 @@ function getPeriodStart(range) {
         if (DateTime.fromISO(m.lastUpdated, { zone: "Europe/Berlin" }) >= start) {
           doUpdate = false;
         }
-      } catch {}
+      } catch { }
     }
     if (doUpdate) {
       writeJson(RANGE_FILES[range], latest);

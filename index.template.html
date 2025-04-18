@@ -10,9 +10,8 @@
     body { background: #1e1f26; font-family: 'Inter', sans-serif; }
     .nickname-link { text-decoration: none; transition: all .2s ease; color: #fff; position: relative; display: inline-block; }
     .nickname-link:hover { color: #38bdf8; text-decoration: underline; text-shadow: 0 0 6px #38bdf8; }
-    .toggle-details { font-size: 1rem; user-select: none; }
-    .details-row.hidden { display: none; }
-    .details-row td { border-top: 1px solid rgba(255,255,255,0.05); }
+    .toggle-details { font-weight: bold; }
+    .toggle-details:hover { color: #38bdf8; cursor: pointer; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
@@ -92,17 +91,6 @@
     document.getElementById("eloRange").addEventListener("change", e => updateEloDiff(e.target.value));
     updateEloDiff("daily");
 
-    document.addEventListener("click", e => {
-      const btn = e.target.closest(".toggle-details");
-      if (!btn) return;
-      const row = btn.closest("tr");
-      const pid = row.dataset.playerId;
-      const detailRow = document.querySelector(`.details-row[data-player-id="${pid}"]`);
-      const isOpen = !detailRow.classList.contains("hidden");
-      detailRow.classList.toggle("hidden");
-      btn.textContent = isOpen ? "▸" : "▾";
-    });
-
     document.querySelectorAll("th").forEach((header, colIdx) => {
       header.addEventListener("click", () => {
         const table = header.closest("table");
@@ -123,13 +111,21 @@
         });
         table.querySelectorAll("th").forEach(th => th.classList.remove("asc","desc"));
         header.classList.add(asc?"asc":"desc");
-        const tbody = table.querySelector("tbody");
-        rows.forEach(r => {
-          const detailRow = document.querySelector(`.details-row[data-player-id="${r.dataset.playerId}"]`);
-          tbody.appendChild(r);
-          tbody.appendChild(detailRow);
-        });
+        rows.forEach(r => table.querySelector("tbody").appendChild(r));
       });
+    });
+
+    document.addEventListener("click", e => {
+      const toggle = e.target.closest(".toggle-details");
+      if (toggle) {
+        const row = toggle.closest("tr");
+        const playerId = row.dataset.playerId;
+        const detailRow = document.querySelector(`tr.details-row[data-player-id='${playerId}']`);
+        if (detailRow) {
+          detailRow.classList.toggle("hidden");
+          toggle.textContent = detailRow.classList.contains("hidden") ? "▸" : "▾";
+        }
+      }
     });
   </script>
 </body>
