@@ -277,10 +277,19 @@ function getPeriodStart(range) {
   </ul>
 </div>`;
 
+    const bestMatesBlock = `
+<div class="mb-2">
+  <div class="font-semibold text-white/80 mb-1">🏆 Meiste Wins mit:</div>
+  <ul class="list-disc list-inside text-sm text-white/90">
+    ${p.bestMates.map(m => `<li><a href="${m.url}" target="_blank" class="nickname-link">${m.nickname}</a> – ${m.wins} Wins</li>`).join("\n")}
+  </ul>
+</div>`;
+
+
     const detailRow = `
 <tr class="details-row hidden" data-player-id="${p.playerId}">
   <td colspan="7" class="p-4 bg-white/5 rounded-b-xl">
-    ${statBlock + topMatesBlock + worstMatesBlock}
+    ${statBlock + topMatesBlock + worstMatesBlock + bestMatesBlock}
   </td>
 </tr>`.trim();
 
