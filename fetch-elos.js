@@ -1,4 +1,4 @@
-// generate_dashboard.js – FINAL VERSION mit BestMates & MostPlayedMaps (fix mit Mapname über matchDetail + Cache)
+// generate_dashboard.js – FINAL VERSION mit BestMates und korrektem K/R
 
 const fs = require("fs");
 const path = require("path");
@@ -60,17 +60,22 @@ async function fetchMatchStats(matchId, playerId) {
   const cache = fetchMatchStats.cache;
   if (cache[matchId]) return cache[matchId][playerId] || null;
 
-  const statsRes = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
-  const detailRes = await retryFetch(`${API_BASE}/matches/${matchId}`, { headers: getHeaders() });
-  if (!statsRes || !detailRes) return null;
+  const res = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
+  if (!res) return null;
+  const data = await safeJson(res);
+  if (!data?.rounds) return null;
+  const players = data.rounds[0].teams.flatMap(t => t.players);
+  const mapStats = Object.fromEntries(players.map(p => [p.player_id, p.player_stats]));
+  const score = data.rounds[0].round_stats["Score"] || "0 / 0";
+  const [a, b] = score.split(" / ").map(Number);
+  const roundCount = a + b;
 
-  const statsData = await safeJson(statsRes);
-  const detailData = await safeJson(detailRes);
+  for (const p of players) {
+    if (mapStats[p.player_id]) {
+      mapStats[p.player_id].__rounds = roundCount;
+    }
+  }
 
-  if (!statsData?.rounds) return null;
-
-  const players = statsData.rounds[0].teams.flatMap(t => t.players);
-  const mapStats = Object.fromEntries(players.map(p => [p.player_id, { ...p.player_stats, __mapName: detailData?.map || "" }]));
   cache[matchId] = mapStats;
   return mapStats[playerId] || null;
 }
@@ -90,7 +95,7 @@ async function fetchRecentStats(playerId) {
     assists += +s.Assists || 0;
     adrTotal += +s.ADR || 0;
     hs += +s.Headshots || 0;
-    rounds += +s.Rounds || 0;
+    if (typeof s.__rounds === "number") rounds += s.__rounds;
     count++;
   }
 
@@ -103,23 +108,6 @@ async function fetchRecentStats(playerId) {
     hsPercent: kills ? Math.round((hs / kills) * 100) + "%" : "0%",
     kr: rounds ? (kills / rounds).toFixed(2) : "0.00",
   };
-}
-
-async function fetchMostPlayedMaps(playerId) {
-  const res = await retryFetch(`${API_BASE}/players/${playerId}/history?game=cs2&limit=30`, { headers: getHeaders() });
-  const hist = await safeJson(res) || { items: [] };
-  const mapCount = {};
-
-  for (const match of hist.items) {
-    const stats = await fetchMatchStats(match.match_id, playerId);
-    const map = stats?.__mapName;
-    if (map) mapCount[map] = (mapCount[map] || 0) + 1;
-  }
-
-  return Object.entries(mapCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([map, count]) => ({ map, count }));
 }
 
 async function fetchTeammateStats(playerId) {
@@ -197,7 +185,6 @@ async function fetchPlayerData(playerId) {
   const topMates = [...teammateStats].sort((a, b) => b.count - a.count).slice(0, 5);
   const worstMates = [...teammateStats].sort((a, b) => b.losses - a.losses).slice(0, 5);
   const bestMates = [...teammateStats].sort((a, b) => b.wins - a.wins).slice(0, 5);
-  const mostPlayedMaps = await fetchMostPlayedMaps(playerId);
 
   return {
     playerId,
@@ -212,7 +199,6 @@ async function fetchPlayerData(playerId) {
     topMates,
     worstMates,
     bestMates,
-    mostPlayedMaps,
   };
 }
 
@@ -310,21 +296,12 @@ function getPeriodStart(range) {
 </div>`;
 
 
-    const mostPlayedMapsBlock = `
-<div class="mb-2">
-  <div class="font-semibold text-white/80 mb-1">🗺️ Meistgespielte Maps (letzte 30 Matches):</div>
-  <ul class="list-disc list-inside text-sm text-white/90">
-    ${p.mostPlayedMaps.map(m => `<li>${m.map} – ${m.count}x</li>`).join("\n")}
-  </ul>
-</div>`;
-
     const detailRow = `
 <tr class="details-row hidden" data-player-id="${p.playerId}">
   <td colspan="7" class="p-4 bg-white/5 rounded-b-xl">
-    ${statBlock + mostPlayedMapsBlock + topMatesBlock + worstMatesBlock + bestMatesBlock}
+    ${statBlock + topMatesBlock + worstMatesBlock + bestMatesBlock}
   </td>
 </tr>`.trim();
-
 
     return mainRow + "\n" + detailRow;
   }).join("\n");
