@@ -1,4 +1,4 @@
-// generate_dashboard.js – FINAL VERSION mit BestMates & MostPlayedMaps (komplett)
+// generate_dashboard.js – FINAL VERSION mit BestMates & MostPlayedMaps (fix mit Mapname über matchDetail + Cache)
 
 const fs = require("fs");
 const path = require("path");
@@ -60,12 +60,17 @@ async function fetchMatchStats(matchId, playerId) {
   const cache = fetchMatchStats.cache;
   if (cache[matchId]) return cache[matchId][playerId] || null;
 
-  const res = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
-  if (!res) return null;
-  const data = await safeJson(res);
-  if (!data?.rounds) return null;
-  const players = data.rounds[0].teams.flatMap(t => t.players);
-  const mapStats = Object.fromEntries(players.map(p => [p.player_id, p.player_stats]));
+  const statsRes = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
+  const detailRes = await retryFetch(`${API_BASE}/matches/${matchId}`, { headers: getHeaders() });
+  if (!statsRes || !detailRes) return null;
+
+  const statsData = await safeJson(statsRes);
+  const detailData = await safeJson(detailRes);
+
+  if (!statsData?.rounds) return null;
+
+  const players = statsData.rounds[0].teams.flatMap(t => t.players);
+  const mapStats = Object.fromEntries(players.map(p => [p.player_id, { ...p.player_stats, __mapName: detailData?.map || "" }]));
   cache[matchId] = mapStats;
   return mapStats[playerId] || null;
 }
@@ -106,7 +111,8 @@ async function fetchMostPlayedMaps(playerId) {
   const mapCount = {};
 
   for (const match of hist.items) {
-    const map = match?.match?.map;
+    const stats = await fetchMatchStats(match.match_id, playerId);
+    const map = stats?.__mapName;
     if (map) mapCount[map] = (mapCount[map] || 0) + 1;
   }
 
