@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ELO Dashboard für FACEIT CS2 Spieler – Live Stats & Insights">
+  <link rel="icon" href="icons/favicon.png" />
   <title>uebertre1ber ELO Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
     body { background: #1e1f26; font-family: 'Inter', sans-serif; }
-    .nickname-link { text-decoration: none; transition: all .2s ease; color: #fff; position: relative; display: inline-block; }
+    .nickname-link { text-decoration: none; transition: all .2s ease; color: #f1f5f9; position: relative; display: inline-block; }
     .nickname-link:hover { color: #38bdf8; text-decoration: underline; text-shadow: 0 0 6px #38bdf8; }
-    .toggle-details { font-weight: bold; }
+    .toggle-details { font-weight: bold; transition: color 0.2s ease; }
     .toggle-details:hover { color: #38bdf8; cursor: pointer; }
+    .details-row { transition: all 0.3s ease-in-out; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
@@ -31,7 +34,7 @@
       <p id="snapshotInfo" class="mt-2 text-xs text-white/70"></p>
     </div>
 
-    <div class="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl shadow-2xl p-6 w-full max-w-6xl overflow-auto">
+    <div class="backdrop-blur-md bg-white/10 border border-white/10 shadow-xl rounded-2xl p-6 w-full max-w-6xl overflow-auto">
       <h2 class="text-2xl font-semibold mb-4 text-white">Leaderboard</h2>
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm text-white">
@@ -43,7 +46,7 @@
               <th class="text-left p-2 cursor-pointer">Level</th>
               <th class="text-left p-2 cursor-pointer">Winrate</th>
               <th class="text-left p-2 cursor-pointer">Matches</th>
-              <th class="text-left p-2 cursor-pointer">Letztes Match</th>
+              <th class="text-left p-2 cursor-pointer hidden sm:table-cell">Letztes Match</th>
             </tr>
           </thead>
           <tbody>
@@ -99,7 +102,7 @@
         rows.sort((a,b) => {
           let aVal = a.children[colIdx].textContent.trim();
           let bVal = b.children[colIdx].textContent.trim();
-          const isDate   = /\d{4}-\d{2}-\d{2}/.test(aVal);
+          const isDate = /\d{4}-\d{2}-\d{2}/.test(aVal);
           const isNumber = !isNaN(parseFloat(aVal.replace(/[%+()]/g,"")));
           if (isDate) {
             aVal = new Date(aVal); bVal = new Date(bVal);
