@@ -15,11 +15,15 @@
     .toggle-details { font-weight: bold; transition: color 0.2s ease; }
     .toggle-details:hover { color: #38bdf8; cursor: pointer; }
     .details-row { transition: all 0.3s ease-in-out; }
+    .badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; display: inline-block; }
+    .level-badge { background-color: #2e2f36; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.1); }
+    .elo-diff-up { background-color: #16a34a; color: white; }
+    .elo-diff-down { background-color: #dc2626; color: white; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
-  <header class="flex justify-center pt-2 pb-0">
-    <img src="icons/levels/uebertreiber_logo.png" alt="uebertre1ber Logo" class="w-40 h-auto sm:w-52 md:w-64 xl:w-72" />
+  <header class="flex justify-center pt-4 pb-2">
+    <img src="icons/levels/uebertreiber_logo.png" alt="uebertre1ber Logo" class="w-44 h-auto sm:w-56 md:w-64 xl:w-72" />
   </header>
 
   <main class="flex-grow flex flex-col items-center p-4">
@@ -34,7 +38,7 @@
       <p id="snapshotInfo" class="mt-2 text-xs text-white/70"></p>
     </div>
 
-    <div class="backdrop-blur-md bg-white/10 border border-white/10 shadow-xl rounded-2xl p-6 w-full max-w-6xl overflow-auto">
+    <div class="backdrop-blur-lg bg-white/5 border border-white/10 shadow-xl rounded-2xl p-6 w-full max-w-6xl overflow-auto">
       <h2 class="text-2xl font-semibold mb-4 text-white">Leaderboard</h2>
       <div class="overflow-x-auto">
         <table class="min-w-full text-sm text-white">
@@ -79,7 +83,8 @@
           cell.textContent = "—";
         } else {
           const diff = now - prev;
-          cell.innerHTML = `<span class="text-xs ${diff>=0?'text-green-400':'text-red-400'}">(${diff>=0?'+':''}${diff})</span>`;
+          const cls = diff >= 0 ? 'elo-diff-up' : 'elo-diff-down';
+          cell.innerHTML = `<span class="badge ${cls}">(${diff >= 0 ? '+' : ''}${diff})</span>`;
         }
       });
 
