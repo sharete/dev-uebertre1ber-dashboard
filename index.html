@@ -1039,7 +1039,14 @@
         const show = name.includes(q);
         row.classList.toggle('hidden', !show);
         const detailRow = document.querySelector(`tr.details-row[data-player-id='${row.dataset.playerId}']`);
-        if (detailRow) detailRow.classList.toggle('hidden', !show);
+        if (detailRow && !show) {
+          detailRow.classList.add('hidden');
+          const btn = row.querySelector('.toggle-details');
+          if (btn) {
+            btn.textContent = '▸';
+            btn.setAttribute('aria-expanded', 'false');
+          }
+        }
       });
     });
 </script>
