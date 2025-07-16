@@ -20,7 +20,7 @@ jobs:
     - name: 📦 Abhängigkeiten installieren
       run: npm install
 
-    - name: 🧠 Puppeteer Script ausführen
+    - name: 🧠 Node-Skript ausführen
       env:
         FACEIT_API_KEY: ${{ secrets.FACEIT_API_KEY }}
       run: npm start
