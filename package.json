@@ -2,7 +2,8 @@
     "name": "faceit-elo-updater",
     "version": "1.0.0",
     "scripts": {
-      "start": "node fetch-elos.js"
+      "start": "node fetch-elos.js",
+      "test": "node test/sort.test.js"
     },
     "dependencies": {
       "puppeteer": "^24.6.1",
