@@ -7,23 +7,12 @@
   <link rel="icon" href="icons/favicon.png" />
   <title>uebertre1ber ELO Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-    body { background: #1e1f26; font-family: 'Inter', sans-serif; }
-    .nickname-link { text-decoration: none; transition: all .2s ease; color: #f1f5f9; position: relative; display: inline-block; }
-    .nickname-link:hover { color: #38bdf8; text-decoration: underline; text-shadow: 0 0 6px #38bdf8; }
-    .toggle-details { font-weight: bold; transition: color 0.2s ease; }
-    .toggle-details:hover { color: #38bdf8; cursor: pointer; }
-    .details-row { transition: all 0.3s ease-in-out; }
-    .badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; display: inline-block; }
-    .level-badge { background-color: #2e2f36; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.1); }
-    .elo-diff-up { background-color: #16a34a; color: white; }
-    .elo-diff-down { background-color: #dc2626; color: white; }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
-  <header class="flex justify-center pt-4 pb-2">
+  <header class="flex justify-between items-center pt-4 pb-2 max-w-6xl w-full mx-auto">
     <img src="icons/levels/uebertreiber_logo.png" alt="uebertre1ber Logo" class="w-44 h-auto sm:w-56 md:w-64 xl:w-72" />
+    <button id="themeToggle" class="text-white border border-white/20 rounded px-2 py-1 text-sm">Light Mode</button>
   </header>
 
   <main class="flex-grow flex flex-col items-center p-4">
@@ -36,6 +25,8 @@
         <option value="yearly">Jährlich</option>
       </select>
       <p id="snapshotInfo" class="mt-2 text-xs text-white/70"></p>
+      <label for="search" class="mr-2 text-white text-sm">Suche:</label>
+      <input id="search" type="text" placeholder="Nickname suchen" class="bg-zinc-800 text-white border border-white/20 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
     </div>
 
     <div class="backdrop-blur-lg bg-white/5 border border-white/10 shadow-xl rounded-2xl p-6 w-full max-w-6xl overflow-auto">
@@ -44,13 +35,13 @@
         <table class="min-w-full text-sm text-white">
           <thead>
             <tr class="border-b border-white/10">
-              <th class="text-left p-2 cursor-pointer">Nickname</th>
-              <th class="text-left p-2 cursor-pointer">ELO</th>
-              <th class="text-left p-2 cursor-pointer">Δ ELO</th>
-              <th class="text-left p-2 cursor-pointer">Level</th>
-              <th class="text-left p-2 cursor-pointer">Winrate</th>
-              <th class="text-left p-2 cursor-pointer">Matches</th>
-              <th class="text-left p-2 cursor-pointer hidden sm:table-cell">Letztes Match</th>
+              <th class="text-left p-2 cursor-pointer sticky-header">Nickname</th>
+              <th class="text-left p-2 cursor-pointer sticky-header">ELO</th>
+              <th class="text-left p-2 cursor-pointer sticky-header hidden sm:table-cell">Δ ELO</th>
+              <th class="text-left p-2 cursor-pointer sticky-header">Level</th>
+              <th class="text-left p-2 cursor-pointer sticky-header hidden md:table-cell">Winrate</th>
+              <th class="text-left p-2 cursor-pointer sticky-header hidden sm:table-cell">Matches</th>
+              <th class="text-left p-2 cursor-pointer sticky-header hidden lg:table-cell">Letztes Match</th>
             </tr>
           </thead>
           <tbody>
@@ -137,9 +128,25 @@
         if (detailRow) {
           detailRow.classList.toggle("hidden");
           toggle.textContent = detailRow.classList.contains("hidden") ? "▸" : "▾";
+          toggle.setAttribute("aria-expanded", !detailRow.classList.contains("hidden"));
         }
       }
     });
-  </script>
+      document.getElementById('themeToggle').addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      const btn = document.getElementById('themeToggle');
+      btn.textContent = document.body.classList.contains('light-mode') ? 'Dark Mode' : 'Light Mode';
+    });
+    document.getElementById('search').addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('tbody tr.player-row').forEach(row => {
+        const name = row.querySelector('.nickname-link').textContent.toLowerCase();
+        const show = name.includes(q);
+        row.classList.toggle('hidden', !show);
+        const detailRow = document.querySelector(`tr.details-row[data-player-id='${row.dataset.playerId}']`);
+        if (detailRow) detailRow.classList.toggle('hidden', !show);
+      });
+    });
+</script>
 </body>
 </html>

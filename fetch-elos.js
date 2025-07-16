@@ -287,13 +287,13 @@ function getPeriodStart(range) {
     const mainRow = `
 <tr class="player-row" data-player-id="${p.playerId}" data-elo="${p.elo}">
   <td class="p-2">
-    <span class="toggle-details cursor-pointer select-none">▸</span>
+    <button class="toggle-details" aria-expanded="false" aria-label="Details anzeigen">▸</button>
     <a href="${p.faceitUrl}" target="_blank" class="nickname-link ml-1">${p.nickname}</a>
   </td>
   <td class="p-2 elo-now">${p.elo}</td>
   <td class="p-2 elo-diff">-</td>
   <td class="p-2">
-    <img src="icons/levels/level_${p.level}_icon.png" width="24" height="24" title="Level ${p.level}">
+    <img src="icons/levels/level_${p.level}_icon.png" width="24" height="24" title="Level ${p.level}" alt="Level ${p.level}">
   </td>
   <td class="p-2">${p.winrate}</td>
   <td class="p-2">${p.matches}</td>
