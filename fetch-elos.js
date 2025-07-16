@@ -1,4 +1,4 @@
-// generate_dashboard.js – FINAL VERSION mit BestMates, verbessertem Cache & intelligenterem Retry
+// fetch-elos.js – FINAL VERSION mit BestMates, verbessertem Cache & intelligenterem Retry
 
 // 🧱 Modul-Imports
 const fs = require("fs");
