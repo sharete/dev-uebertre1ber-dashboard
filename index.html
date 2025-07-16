@@ -1006,11 +1006,16 @@
           const isNumber = !isNaN(parseFloat(aVal.replace(/[%+()]/g,"")));
           if (isDate) {
             aVal = new Date(aVal); bVal = new Date(bVal);
+            return asc ? aVal - bVal : bVal - aVal;
           } else if (isNumber) {
             aVal = parseFloat(aVal.replace(/[%+()]/g,""));
             bVal = parseFloat(bVal.replace(/[%+()]/g,""));
+            return asc ? aVal - bVal : bVal - aVal;
+          } else {
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+            return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
           }
-          return asc ? (aVal - bVal) : (bVal - aVal);
         });
         table.querySelectorAll("th").forEach(th => th.classList.remove("asc","desc"));
         header.classList.add(asc?"asc":"desc");
