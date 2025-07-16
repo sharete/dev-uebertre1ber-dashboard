@@ -10,9 +10,3 @@ body { background: #1e1f26; font-family: 'Inter', sans-serif; }
 .elo-diff-up { background-color: #16a34a; color: white; }
 .elo-diff-down { background-color: #dc2626; color: white; }
 .sticky-header { position: sticky; top: 0; background: #1e1f26; z-index: 10; }
-body.light-mode { background: #f1f5f9; color: #1e1f26; }
-body.light-mode .text-white { color:#1e1f26 !important; }
-body.light-mode .text-white\/70 { color:rgba(30,31,38,0.7) !important; }
-body.light-mode .text-white\/50 { color:rgba(30,31,38,0.5) !important; }
-body.light-mode .bg-white\/5 { background-color: rgba(0,0,0,0.05) !important; }
-body.light-mode .border-white\/10 { border-color: rgba(0,0,0,0.1) !important; }

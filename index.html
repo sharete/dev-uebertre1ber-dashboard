@@ -10,9 +10,8 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="min-h-screen flex flex-col text-white bg-[#1e1f26]">
-  <header class="flex justify-between items-center pt-4 pb-2 max-w-6xl w-full mx-auto">
+  <header class="flex justify-center items-center pt-4 pb-2 max-w-6xl w-full mx-auto">
     <img src="icons/levels/uebertreiber_logo.png" alt="uebertre1ber Logo" class="w-44 h-auto sm:w-56 md:w-64 xl:w-72" />
-    <button id="themeToggle" class="text-white border border-white/20 rounded px-2 py-1 text-sm">Light Mode</button>
   </header>
 
   <main class="flex-grow flex flex-col items-center p-4">
@@ -1026,11 +1025,6 @@
           toggle.setAttribute("aria-expanded", !detailRow.classList.contains("hidden"));
         }
       }
-    });
-      document.getElementById('themeToggle').addEventListener('click', () => {
-      document.body.classList.toggle('light-mode');
-      const btn = document.getElementById('themeToggle');
-      btn.textContent = document.body.classList.contains('light-mode') ? 'Dark Mode' : 'Light Mode';
     });
     document.getElementById('search').addEventListener('input', e => {
       const q = e.target.value.toLowerCase();
