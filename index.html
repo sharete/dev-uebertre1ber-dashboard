@@ -990,8 +990,24 @@
         const rows = Array.from(table.querySelectorAll("tbody tr.player-row"));
         const asc = !header.classList.contains("asc");
         rows.sort((a,b) => {
-          let aVal = a.children[colIdx].textContent.trim();
-          let bVal = b.children[colIdx].textContent.trim();
+          const getCellVal = (row) => {
+            const cell = row.children[colIdx];
+            let val = cell.textContent.trim();
+            if (!val) {
+              const img = cell.querySelector('img');
+              if (img) val = img.alt || '';
+            }
+            return val;
+          };
+          let aVal = getCellVal(a);
+          let bVal = getCellVal(b);
+          const levelA = /^Level\s*(\d+)/i.exec(aVal);
+          const levelB = /^Level\s*(\d+)/i.exec(bVal);
+          if (levelA && levelB) {
+            aVal = parseInt(levelA[1], 10);
+            bVal = parseInt(levelB[1], 10);
+            return asc ? aVal - bVal : bVal - aVal;
+          }
           const isDate = /\d{4}-\d{2}-\d{2}/.test(aVal);
           const isNumber = !isNaN(parseFloat(aVal.replace(/[%+()]/g,"")));
           if (isDate) {
