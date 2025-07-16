@@ -1,12 +1,16 @@
-// generate_dashboard.js – FINAL VERSION mit BestMates und korrektem K/R
+// generate_dashboard.js – FINAL VERSION mit BestMates, verbessertem Cache & intelligenterem Retry
 
+// 🧱 Modul-Imports
 const fs = require("fs");
 const path = require("path");
 const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const { DateTime } = require("luxon");
 const pLimit = (...args) => import("p-limit").then(mod => mod.default(...args));
 
+// 🔐 API-Key aus Umgebungsvariablen
 const FACEIT_API_KEY = process.env.FACEIT_API_KEY;
+
+// 📄 Konfigurationspfade und -dateien
 const PLAYERS_FILE = "players.txt";
 const TEMPLATE_FILE = "index.template.html";
 const OUTPUT_FILE = "index.html";
@@ -20,32 +24,47 @@ const RANGE_FILES = {
   latest: "elo-latest.json",
 };
 
+// 📁 Erstelle Datenverzeichnis, falls es nicht existiert
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
+// 💾 Hilfsfunktion zum Schreiben von JSON-Dateien (atomar)
 function writeJson(file, data) {
-  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, 2));
+  const tmp = path.join(DATA_DIR, file + ".tmp");
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, path.join(DATA_DIR, file));
   console.log(`✅ Datei geschrieben: ${file} (${data.length} Einträge)`);
 }
 
+// 🔧 Standard-Header für API-Requests
 function getHeaders() {
   return {
     Authorization: `Bearer ${FACEIT_API_KEY}`,
-    "User-Agent": "Mozilla/5.0",
     Accept: "application/json",
     Referer: "https://www.faceit.com/",
     Origin: "https://www.faceit.com",
   };
 }
 
+// 🔁 Retry-Mechanismus – überspringt sinnlose Retries & nutzt Back‑off
 async function retryFetch(url, options = {}, retries = 3, delay = 1000) {
-  for (let i = 0; i <= retries; i++) {
+  let attempt = 0;
+  while (attempt <= retries) {
     const res = await fetch(url, options);
-    if (res.ok) return res;
-    await new Promise(r => setTimeout(r, delay));
+
+    // Erfolg oder Fehler, bei dem neu versuchen keinen Sinn macht
+    if (res.ok || res.status === 404 || res.status === 401) return res;
+
+    attempt++;
+    if (attempt > retries) break;
+
+    // Exponential Back‑off mit kleinem Jitter
+    const backoff = delay * Math.pow(2, attempt - 1) * (1 + Math.random() * 0.2);
+    await new Promise(r => setTimeout(r, backoff));
   }
   return null;
 }
 
+// 🧷 JSON sicher parsen
 async function safeJson(res) {
   try {
     const txt = await res.text();
@@ -55,38 +74,48 @@ async function safeJson(res) {
   }
 }
 
+// 📊 Hole Match-Stats für ein Match & speichere / teile sie zwischen
 async function fetchMatchStats(matchId, playerId) {
-  if (!fetchMatchStats.cache) fetchMatchStats.cache = {};
+  if (!fetchMatchStats.cache) fetchMatchStats.cache = new Map(); // Map<matchId, Promise<mapStats|null>>
   const cache = fetchMatchStats.cache;
-  if (cache[matchId]) return cache[matchId][playerId] || null;
 
-  const res = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
-  if (!res) return null;
-  const data = await safeJson(res);
-  if (!data?.rounds) return null;
-  const players = data.rounds[0].teams.flatMap(t => t.players);
-  const mapStats = Object.fromEntries(players.map(p => [p.player_id, p.player_stats]));
-  const score = data.rounds[0].round_stats["Score"] || "0 / 0";
-  const [a, b] = score.split(" / ").map(Number);
-  const roundCount = a + b;
+  // Bereits laufender oder fertiger Request?
+  if (!cache.has(matchId)) {
+    cache.set(
+      matchId,
+      (async () => {
+        const res = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
+        if (!res) return null;
+        const data = await safeJson(res);
+        if (!data?.rounds) return null;
 
-  for (const p of players) {
-    if (mapStats[p.player_id]) {
-      mapStats[p.player_id].__rounds = roundCount;
-    }
+        const players = data.rounds[0].teams.flatMap(t => t.players);
+        const mapStats = Object.fromEntries(players.map(p => [p.player_id, p.player_stats]));
+        const score = data.rounds[0].round_stats["Score"] || "0 / 0";
+        const [a, b] = score.split(" / ").map(Number);
+        const roundCount = a + b;
+
+        players.forEach(p => {
+          if (mapStats[p.player_id]) mapStats[p.player_id].__rounds = roundCount;
+        });
+        return mapStats;
+      })()
+    );
   }
 
-  cache[matchId] = mapStats;
-  return mapStats[playerId] || null;
+  const mapStats = await cache.get(matchId);
+  return mapStats ? mapStats[playerId] || null : null;
 }
 
+// 📈 Analysiere die letzten 30 Matches eines Spielers
 async function fetchRecentStats(playerId) {
   const res = await retryFetch(`${API_BASE}/players/${playerId}/history?game=cs2&limit=30`, { headers: getHeaders() });
-  const hist = await safeJson(res) || { items: [] };
+  const hist = (await safeJson(res)) || { items: [] };
   const statsArr = await Promise.all(
     hist.items.map(m => fetchMatchStats(m.match_id, playerId).catch(() => null))
   );
 
+  // Statistiken aufsummieren
   let kills = 0, deaths = 0, assists = 0, adrTotal = 0, hs = 0, count = 0, rounds = 0;
   for (const s of statsArr) {
     if (!s) continue;
@@ -104,15 +133,16 @@ async function fetchRecentStats(playerId) {
     assists,
     deaths,
     kd: count && deaths ? (kills / deaths).toFixed(2) : "0.00",
-    adr: count ? (adrTotal / count).toFixed(1) : "0.0",
+    adr: rounds ? (adrTotal / rounds).toFixed(1) : "0.0",
     hsPercent: kills ? Math.round((hs / kills) * 100) + "%" : "0%",
     kr: rounds ? (kills / rounds).toFixed(2) : "0.00",
   };
 }
 
+// 👥 Ermittlung der besten Mitspieler
 async function fetchTeammateStats(playerId) {
   const res = await retryFetch(`${API_BASE}/players/${playerId}/history?game=cs2&limit=30`, { headers: getHeaders() });
-  const hist = await safeJson(res) || { items: [] };
+  const hist = (await safeJson(res)) || { items: [] };
   if (hist.items.length === 0) return [];
 
   const countMap = {}, winMap = {}, loseMap = {}, infoMap = {};
@@ -144,22 +174,25 @@ async function fetchTeammateStats(playerId) {
     }
   }
 
-  return Object.entries(countMap).map(([id, cnt]) => {
-    const { nickname, url } = infoMap[id] || {};
-    const wins = winMap[id] || 0;
-    const losses = loseMap[id] || 0;
-    return {
-      playerId: id,
-      nickname: nickname || "—",
-      url: url || "#",
-      count: cnt,
-      wins,
-      losses,
-      winrate: cnt ? `${Math.round((wins / cnt) * 100)}%` : "—",
-    };
-  }).filter(p => p.nickname && p.nickname !== "—");
+  return Object.entries(countMap)
+    .map(([id, cnt]) => {
+      const { nickname, url } = infoMap[id] || {};
+      const wins = winMap[id] || 0;
+      const losses = loseMap[id] || 0;
+      return {
+        playerId: id,
+        nickname: nickname || "—",
+        url: url || "#",
+        count: cnt,
+        wins,
+        losses,
+        winrate: cnt ? `${Math.round((wins / cnt) * 100)}%` : "—",
+      };
+    })
+    .filter(p => p.nickname && p.nickname !== "—");
 }
 
+// 🧾 Alle relevanten Spielerinformationen laden (Profil, Matches, Mitspieler)
 async function fetchPlayerData(playerId) {
   const headers = getHeaders();
   const [pr, hr, sr] = await Promise.all([
@@ -168,9 +201,9 @@ async function fetchPlayerData(playerId) {
     retryFetch(`${API_BASE}/players/${playerId}/stats/cs2`, { headers }),
   ]);
 
-  const profile = await safeJson(pr) || {};
-  const history = await safeJson(hr) || { items: [] };
-  const stats = await safeJson(sr) || {};
+  const profile = (await safeJson(pr)) || {};
+  const history = (await safeJson(hr)) || { items: [] };
+  const stats = (await safeJson(sr)) || {};
 
   const elo = profile.games?.cs2?.faceit_elo || null;
   const nickname = profile.nickname || "—";
@@ -180,6 +213,7 @@ async function fetchPlayerData(playerId) {
   const lastTs = history.items[0]?.finished_at;
   const lastMatch = lastTs ? DateTime.fromSeconds(lastTs).setZone("Europe/Berlin").toFormat("yyyy-MM-dd HH:mm") : "—";
 
+  // Ergänzungen: Stats, BestMates usw.
   const recentStats = await fetchRecentStats(playerId);
   const teammateStats = await fetchTeammateStats(playerId);
   const topMates = [...teammateStats].sort((a, b) => b.count - a.count).slice(0, 5);
@@ -202,6 +236,7 @@ async function fetchPlayerData(playerId) {
   };
 }
 
+// 🕒 Startzeitpunkt je Zeitbereich
 function getPeriodStart(range) {
   const now = DateTime.now().setZone("Europe/Berlin");
   switch (range) {
@@ -214,18 +249,21 @@ function getPeriodStart(range) {
 }
 
 (async () => {
+  // 🛑 Abbruch, falls kein API-Key gesetzt ist
   if (!FACEIT_API_KEY) {
     console.error("❌ FACEIT_API_KEY fehlt!");
     process.exit(1);
   }
 
+  // 📥 Spieler-IDs aus players.txt einlesen (Kommentare & Leerzeilen ignorieren)
   const lines = fs.readFileSync(PLAYERS_FILE, "utf-8")
     .trim()
     .split("\n")
     .map(l => l.split(/#|\/\//)[0].trim())
     .filter(Boolean);
 
-  const limit = await pLimit(5);
+  const concurrency = parseInt(process.env.CONCURRENCY || "5", 10);
+  const limit = await pLimit(concurrency);
   const results = (
     await Promise.all(lines.map(id =>
       limit(async () => {
@@ -295,7 +333,6 @@ function getPeriodStart(range) {
   </ul>
 </div>`;
 
-
     const detailRow = `
 <tr class="details-row hidden" data-player-id="${p.playerId}">
   <td colspan="7" class="p-4 bg-white/5 rounded-b-xl">
@@ -328,7 +365,7 @@ function getPeriodStart(range) {
     }
     if (doUpdate) {
       writeJson(RANGE_FILES[range], latest);
-      fs.writeFileSync(metaPath, JSON.stringify({ lastUpdated: start.toISODate() }, null, 2));
+      fs.writeFileSync(metaPath, JSON.stringify({ lastUpdated: start.toISO() }, null, 2));
       console.log(`✅ ${RANGE_FILES[range]} wurde aktualisiert.`);
     }
   }
