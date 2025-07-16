@@ -80,7 +80,8 @@
 
       try {
         const meta = await fetch(`data/elo-${range}-meta.json`).then(r => r.json());
-        document.getElementById("snapshotInfo").textContent = `Δ ELO basiert auf Snapshot vom: ${meta.lastUpdated}`;
+        const snapshotDate = meta.lastUpdated.substring(0, 10);
+        document.getElementById("snapshotInfo").textContent = `Δ ELO basiert auf Snapshot vom: ${snapshotDate}`;
       } catch {
         document.getElementById("snapshotInfo").textContent = '';
       }
