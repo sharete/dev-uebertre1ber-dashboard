@@ -166,5 +166,25 @@
       });
     });
 </script>
+<script>
+  fetch('steam_accounts.json')
+    .then(r => r.json())
+    .then(map => {
+      Object.entries(map).forEach(([id, url]) => {
+        const row = document.querySelector(`tr.player-row[data-player-id="${id}"] td.p-2`);
+        if (!row) return;
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        const img = document.createElement('img');
+        img.src = url.replace(/\/+$/, '') + '/avatar';
+        img.alt = 'Steam Avatar';
+        img.className = 'inline-block w-6 h-6 rounded-full align-middle mr-1';
+        link.appendChild(img);
+        row.insertBefore(link, row.querySelector('.nickname-link'));
+      });
+    })
+    .catch(() => {});
+</script>
 </body>
 </html>
