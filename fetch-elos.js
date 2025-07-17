@@ -15,6 +15,7 @@ const PLAYERS_FILE = "players.txt";
 const TEMPLATE_FILE = "index.template.html";
 const OUTPUT_FILE = "index.html";
 const DATA_DIR = path.join(__dirname, "data");
+const STEAM_FILE = "steam_accounts.json";
 const API_BASE = "https://open.faceit.com/data/v4";
 const RANGE_FILES = {
   daily: "elo-daily.json",
@@ -262,6 +263,14 @@ function getPeriodStart(range) {
     .map(l => l.split(/#|\/\//)[0].trim())
     .filter(Boolean);
 
+  // 📝 Steam-Profile-Links laden
+  let steamMap = {};
+  if (fs.existsSync(STEAM_FILE)) {
+    try {
+      steamMap = JSON.parse(fs.readFileSync(STEAM_FILE, "utf-8"));
+    } catch {}
+  }
+
   const concurrency = parseInt(process.env.CONCURRENCY || "5", 10);
   const limit = await pLimit(concurrency);
   const results = (
@@ -284,10 +293,13 @@ function getPeriodStart(range) {
 
   const updatedTime = DateTime.now().setZone("Europe/Berlin").toFormat("yyyy-MM-dd HH:mm");
   const rows = results.map(p => {
+    const steamUrl = steamMap[p.playerId] || null;
+    const avatarUrl = steamUrl ? steamUrl.replace(/\/+$/, '') + '/avatar' : null;
     const mainRow = `
 <tr class="player-row" data-player-id="${p.playerId}" data-elo="${p.elo}">
   <td class="p-2">
     <button class="toggle-details" aria-expanded="false" aria-label="Details anzeigen">▸</button>
+    ${avatarUrl ? `<a href="${steamUrl}" target="_blank"><img src="${avatarUrl}" alt="${p.nickname} Avatar" class="inline-block w-6 h-6 rounded-full align-middle mr-1"></a>` : ''}
     <a href="${p.faceitUrl}" target="_blank" class="nickname-link ml-1">${p.nickname}</a>
   </td>
   <td class="p-2 elo-now">${p.elo}</td>
