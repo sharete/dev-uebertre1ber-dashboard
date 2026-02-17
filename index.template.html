@@ -44,39 +44,47 @@
     }
   </script>
   <style>
+    /* ═══ Background ═══ */
     body {
       background-color: #050510;
       background-image:
-        radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(189, 0, 255, 0.05) 0%, transparent 40%);
+        radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(189, 0, 255, 0.04) 0%, transparent 40%);
       background-attachment: fixed;
     }
 
+    /* ═══ Glassmorphism ═══ */
     .glass-panel {
       background: rgba(20, 20, 30, 0.6);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.37),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
     .glass-card {
       background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.03);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-left: 2px solid transparent;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .glass-card:hover {
       transform: translateY(-2px);
       background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(0, 242, 255, 0.2);
-      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+      border-color: rgba(0, 242, 255, 0.15);
+      border-left-color: #FF5500;
+      box-shadow:
+        0 12px 40px -10px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(0, 242, 255, 0.04);
     }
 
-    /* Desktop table */
+    /* ═══ Table ═══ */
     table {
       border-collapse: separate;
-      border-spacing: 0 8px;
+      border-spacing: 0 6px;
       width: 100%;
     }
 
@@ -86,13 +94,24 @@
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.4);
-      font-size: 0.75rem;
-      padding: 1rem;
+      font-size: 0.7rem;
+      padding: 0.75rem 1rem;
+      position: sticky;
+      top: 0;
+      background: rgba(5, 5, 16, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 10;
     }
 
-    td {
-      padding: 1rem;
+    th::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
     }
+
+    td { padding: 0.875rem 1rem; }
 
     tr.player-row td:first-child {
       border-top-left-radius: 12px;
@@ -104,83 +123,181 @@
       border-bottom-right-radius: 12px;
     }
 
-    tr.details-row td {
-      border-radius: 12px;
-    }
+    tr.details-row td { border-radius: 12px; }
 
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
+    /* ═══ Custom Scrollbar ═══ */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #050510; }
+    ::-webkit-scrollbar-thumb { background: #222; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FF5500; }
 
-    ::-webkit-scrollbar-track {
-      background: #050510;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #333;
-      border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #FF5500;
-    }
-
-    .text-glow {
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-    }
-
-    .text-glow-blue {
-      text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-    }
-
-    .text-glow-orange {
-      text-shadow: 0 0 10px rgba(255, 85, 0, 0.5);
-    }
+    /* ═══ Text Glow ═══ */
+    .text-glow { text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+    .text-glow-blue { text-shadow: 0 0 12px rgba(0, 242, 255, 0.5); }
+    .text-glow-orange { text-shadow: 0 0 12px rgba(255, 85, 0, 0.5); }
 
     .level-badge {
       clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
     }
 
-    /* Mobile card layout */
+    /* ═══ Animations ═══ */
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-15px) scale(1.02); }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.35; }
+    }
+
+    @keyframes fade-slide-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bar-fill {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.8); }
+    }
+
+    .animate-float { animation: float 8s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+
+    .animate-fade-in {
+      animation: fade-slide-in 0.4s ease-out both;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: live-pulse 2s ease-in-out infinite;
+    }
+
+    /* ═══ Detail Panel Transition ═══ */
+    .details-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+      opacity: 0;
+    }
+
+    .details-row.is-open .details-content {
+      max-height: 2000px;
+      opacity: 1;
+    }
+
+    /* ═══ Winrate Bar ═══ */
+    .winrate-fill {
+      transform-origin: left;
+      animation: bar-fill 0.8s ease-out both;
+    }
+
+    /* ═══ Rank Badges ═══ */
+    .rank-badge {
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; box-shadow: 0 0 12px rgba(251,191,36,0.4); }
+    .rank-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); color: #000; box-shadow: 0 0 8px rgba(156,163,175,0.3); }
+    .rank-3 { background: linear-gradient(135deg, #d97706, #b45309); color: #000; box-shadow: 0 0 8px rgba(217,119,6,0.3); }
+    .rank-default { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.25); }
+
+    /* ═══ Scroll To Top ═══ */
+    .scroll-top-btn {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: rgba(20,20,30,0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.5);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      opacity: 0; pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      z-index: 50;
+    }
+
+    .scroll-top-btn.visible {
+      opacity: 1; pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .scroll-top-btn:hover {
+      background: rgba(0,242,255,0.1);
+      border-color: rgba(0,242,255,0.3);
+      color: #00f2ff;
+      box-shadow: 0 0 20px rgba(0,242,255,0.15);
+    }
+
+    /* ═══ Mobile ═══ */
     @media (max-width: 768px) {
-      .desktop-table {
-        display: none !important;
-      }
-
-      .mobile-cards {
-        display: flex !important;
-      }
-
-      .hero-stats-grid {
-        grid-template-columns: 1fr 1fr !important;
-      }
-
-      .awards-grid {
-        grid-template-columns: 1fr 1fr !important;
-      }
+      .desktop-table { display: none !important; }
+      .mobile-cards { display: flex !important; }
+      .hero-stats-grid { grid-template-columns: 1fr 1fr !important; }
+      .awards-grid { grid-template-columns: 1fr 1fr !important; }
+      .scroll-top-btn { bottom: 1rem; right: 1rem; }
     }
 
     @media (min-width: 769px) {
-      .mobile-cards {
-        display: none !important;
-      }
+      .mobile-cards { display: none !important; }
     }
 
-    /* Comparison chart section */
+    /* ═══ Comparison Chips ═══ */
     .comparison-chip {
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.25s ease;
     }
 
     .comparison-chip:hover {
       transform: scale(1.05);
+      border-color: rgba(255,255,255,0.15);
     }
 
     .comparison-chip.active {
       border-color: rgba(0, 242, 255, 0.5);
       background: rgba(0, 242, 255, 0.1);
+      box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
     }
+
+    /* ═══ Section Dividers ═══ */
+    .section-title {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 1rem;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+    }
+
+    /* ═══ Elo Color Tiers ═══ */
+    .elo-tier-legendary { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.4); }
+    .elo-tier-diamond { color: #a78bfa; text-shadow: 0 0 10px rgba(167,139,250,0.35); }
+    .elo-tier-platinum { color: #60a5fa; text-shadow: 0 0 8px rgba(96,165,250,0.3); }
+    .elo-tier-gold { color: #34d399; }
+    .elo-tier-silver { color: rgba(255,255,255,0.7); }
   </style>
 </head>
 
@@ -188,22 +305,25 @@
 
   <!-- Background Mesh -->
   <div class="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-    <div class="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[150px] animate-pulse">
-    </div>
-    <div class="absolute bottom-[-20%] right-[20%] w-[60%] h-[60%] bg-purple-500/5 rounded-full blur-[150px]"
-      style="animation-delay: 2s"></div>
+    <div class="absolute top-[-20%] left-[15%] w-[55%] h-[55%] bg-blue-500/[0.04] rounded-full blur-[180px] animate-float"></div>
+    <div class="absolute bottom-[-20%] right-[15%] w-[55%] h-[55%] bg-purple-500/[0.04] rounded-full blur-[180px] animate-float" style="animation-delay: -4s"></div>
+    <div class="absolute top-[40%] left-[50%] w-[30%] h-[30%] bg-orange-500/[0.02] rounded-full blur-[120px] animate-float" style="animation-delay: -2s"></div>
   </div>
 
+  <!-- Scroll to Top -->
+  <button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+  </button>
+
   <!-- Header -->
-  <header class="py-10 flex flex-col items-center justify-center gap-6 relative">
+  <header class="py-8 md:py-10 flex flex-col items-center justify-center gap-6 relative">
     <div class="absolute top-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
-    <div class="relative group cursor-pointer hover:scale-105 transition-transform duration-500">
-      <div
-        class="absolute -inset-2 bg-gradient-to-r from-faceit to-orange-600 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition duration-500">
-      </div>
-      <img src="icons/levels/uebertreiber_logo.png" alt="uebertre1ber" class="relative w-64 md:w-80 drop-shadow-2xl" />
+    <div class="relative group cursor-pointer hover:scale-[1.03] transition-transform duration-500">
+      <div class="absolute -inset-3 bg-gradient-to-r from-faceit via-orange-500 to-amber-500 rounded-full blur-2xl opacity-15 group-hover:opacity-30 transition duration-700 animate-pulse-glow"></div>
+      <img src="icons/levels/uebertreiber_logo.png" alt="uebertre1ber" class="relative w-56 md:w-72 drop-shadow-2xl" />
     </div>
+    <div class="w-48 md:w-64 h-px bg-gradient-to-r from-transparent via-faceit/30 to-transparent"></div>
 
     <!-- Hero Stats Grid -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl px-4 mt-4 hero-stats-grid">
@@ -256,7 +376,7 @@
           <p class="text-xs uppercase tracking-widest text-white/40 font-bold">Tracked</p>
           <p class="font-bold text-white text-lg tracking-tight"><span
               class="text-blue-400"><!-- INSERT_PLAYER_COUNT --></span> Players</p>
-          <p class="text-xs text-white/30">Live Updates</p>
+          <p class="text-xs text-white/30 flex items-center gap-1.5"><span class="live-dot"></span> Live Updates</p>
         </div>
       </div>
     </div>
@@ -266,7 +386,7 @@
 
     <!-- Awards Section -->
     <section id="awards-section" class="px-2">
-      <h2 class="text-xs uppercase tracking-widest text-white/30 font-bold mb-4 flex items-center gap-2">
+      <h2 class="section-title">
         <span>🏆</span> Awards (Last 30 Matches)
       </h2>
       <!-- INSERT_AWARDS_SECTION -->
@@ -335,12 +455,12 @@
 
     <!-- ELO Comparison Chart -->
     <section id="comparison-section" class="px-2 mt-4">
-      <h2 class="text-xs uppercase tracking-widest text-white/30 font-bold mb-4 flex items-center gap-2">
+      <h2 class="section-title">
         <span>📈</span> ELO Vergleich
       </h2>
       <div id="comparison-chips" class="flex flex-wrap gap-2 mb-4"></div>
       <div class="glass-panel rounded-xl p-4 relative overflow-hidden">
-        <div class="h-64 w-full">
+        <div class="h-72 w-full">
           <canvas id="comparison-chart"></canvas>
         </div>
       </div>
@@ -585,6 +705,12 @@
       return 0;
     }
 
+    // --- Scroll to Top ---
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    window.addEventListener('scroll', () => {
+      scrollTopBtn.classList.toggle('visible', window.scrollY > 400);
+    }, { passive: true });
+
     // --- Details Toggle & Chart ---
     const charts = {};
 
@@ -600,11 +726,10 @@
       const detailRow = document.querySelector(`tr.details-row[data-player-id="${pid}"]`);
 
       if (detailRow) {
-        detailRow.classList.toggle("hidden");
-        const isHidden = detailRow.classList.contains("hidden");
-        if (toggle) toggle.style.transform = isHidden ? "rotate(0deg)" : "rotate(90deg)";
+        const isOpen = detailRow.classList.toggle("is-open");
+        if (toggle) toggle.style.transform = isOpen ? "rotate(90deg)" : "rotate(0deg)";
 
-        if (!isHidden) {
+        if (isOpen) {
           // Radar Chart Init
           const canvasRadar = detailRow.querySelector("canvas.radar-chart");
           if (canvasRadar && !charts[`radar-${pid}`]) {

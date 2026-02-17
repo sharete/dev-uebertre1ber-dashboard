@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 *.log
+*.bak
 .env
 data/*.json
 data_backup/

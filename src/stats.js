@@ -1,7 +1,21 @@
 const { DateTime } = require("luxon");
 
+/** Maximum number of matches to analyze for stats */
+const MAX_MATCHES = 30;
+
 class StatsCalculator {
+    /**
+     * Calculates comprehensive stats for a player from their match history.
+     * @param {string} playerId - FACEIT player UUID
+     * @param {Array} history - Array of match history items (newest first)
+     * @param {object} matchStatsMap - Map of matchId → per-player stats
+     * @param {Array} externalEloHistory - Raw ELO history from FACEIT API
+     * @returns {object} Calculated stats: recent, teammates, eloHistory, matchHistory, streak, last5, mapPerformance
+     */
     calculatePlayerStats(playerId, history, matchStatsMap, externalEloHistory) {
+        if (!playerId || !history || !matchStatsMap) {
+            return this._emptyStats();
+        }
         let kills = 0, deaths = 0, assists = 0, adrTotal = 0, hs = 0, count = 0, rounds = 0;
 
         // For teammates analysis
@@ -183,6 +197,19 @@ class StatsCalculator {
             streak,
             last5,
             mapPerformance
+        };
+    }
+
+    /** Returns an empty stats object for error/edge cases */
+    _emptyStats() {
+        return {
+            recent: { kills: 0, assists: 0, deaths: 0, wins: 0, kd: "0.00", adr: "0.0", hsPercent: "0%", kr: "0.00", matches: 0, winratePct: 0 },
+            teammates: [],
+            eloHistory: [],
+            matchHistory: [],
+            streak: { type: "none", count: 0 },
+            last5: [],
+            mapPerformance: []
         };
     }
 }

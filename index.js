@@ -11,6 +11,7 @@ const PLAYERS_FILE = "players.txt";
 const DATA_DIR = path.join(__dirname, "data");
 const TEMPLATE_FILE = "index.template.html";
 const OUTPUT_FILE = "index.html";
+const MAX_MATCHES = 30;
 
 const RANGE_FILES = {
     daily: "elo-daily.json",
@@ -176,7 +177,9 @@ function calculateAwards(results) {
     console.log(`ℹ️ Processing ${lines.length} players...`);
 
     const results = [];
-    for (const id of lines) {
+    for (let i = 0; i < lines.length; i++) {
+        const id = lines[i];
+        console.log(`  ⏳ Processing ${i + 1}/${lines.length}: ${id.substring(0, 8)}...`);
         const p = await processPlayer(id);
         if (p) results.push(p);
     }

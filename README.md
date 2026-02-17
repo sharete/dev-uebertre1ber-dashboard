@@ -10,60 +10,73 @@ Ein automatisiertes FACEIT-Dashboard, das Statistiken wie ELO-Entwicklung, Match
   - K/D, ADR, HS%, K/R
   - ELO +/- pro Spiel
 - 🗓️ **ELO-Verlauf** als Sparkline (täglich, wöchentlich, monatlich, jährlich)
-- 📁 **Match-Analyse** mit:
-  - Beste/schlechteste Map
-  - Durchschnittliche K/D pro Map
-  - Stats gegen häufige Gegner
-- 👥 **Häufigster Mitspieler** & gemeinsame Winrate
-- 🧩 Modernes UI mit **Tailwind CSS** und **Glassmorphism**
-- 🔍 Sortierbare Tabellen & Tooltips für jede Zahl
+- 📈 **ELO-Vergleichschart** – Spieler direkt vergleichen (letzte 30 Matches)
+- 📁 **Map-Analyse** mit Winrate und K/D pro Map + Radar-Chart
+- 👥 **Mitspieler-Analyse** – häufigste, beste und schlechteste Duos
+- 🏆 **Awards** – Best K/D, Headshot King, Best ADR, Winrate, Streak, Survivor
+- 🔍 **Such- und Sortier-Funktionen** für alle Spalten
+- 🧩 Modernes UI mit **Tailwind CSS**, **Glassmorphism** und **Chart.js**
+- 📱 **Responsive Design** – optimiert für Desktop und Mobile
 
 ## 🛠️ Technologie-Stack
 
-- 📦 `Node.js` + `node-fetch` zur Datenabfrage via [FACEIT API](https://developers.faceit.com/)
-- 🧪 Datenanalyse mit JavaScript (Matchauswertung & Snapshots)
-- 🎨 Frontend mit HTML + TailwindCSS
-- 🔁 Automatisches Deployment mit GitHub Actions
+- 📦 `Node.js 20+` zur Datenabfrage via [FACEIT API](https://developers.faceit.com/)
+- 🧪 Datenanalyse mit JavaScript (Matchauswertung & ELO-Snapshots)
+- 🎨 Frontend: HTML + Tailwind CSS (CDN) + Chart.js (CDN)
+- 🔁 Automatisches Deployment mit GitHub Actions + GitHub Pages
+
+## 📄 Projektstruktur
+
+```
+.
+├── .github/workflows/     # GitHub Actions (Auto-Update + Spielerverwaltung)
+├── data/                  # ELO Snapshots (daily, weekly, monthly, yearly)
+├── icons/                 # Level-Icons und Logo
+├── src/
+│   ├── api.js             # FACEIT API Client mit Retry & Cache
+│   ├── cache.js           # Match-Statistik Cache (90 Tage)
+│   ├── map_utils.js       # Map-Name Normalisierung
+│   ├── renderer.js        # HTML Template Renderer
+│   └── stats.js           # Spielerstatistik-Berechnung
+├── index.js               # Main Script – orchestriert Datenabfrage + HTML-Generierung
+├── index.template.html    # HTML-Template mit Platzhaltern
+├── manage-players.js      # CLI zur Spielerverwaltung (add/remove/list)
+├── players.txt            # Spieler-IDs + Nicknames
+└── package.json
+```
 
 ## ⚙️ Einrichtung (lokal)
 
 ```bash
-git clone https://github.com/deinname/uebertre1ber-dashboard.git
-cd uebertre1ber-dashboard
+git clone https://github.com/sharete/dev-uebertre1ber-dashboard.git
+cd dev-uebertre1ber-dashboard
 npm install
-node fetch-elos.js
+FACEIT_API_KEY=dein_key node index.js
 ```
 
-> Die Datei `players.txt` enthält die zu überwachenden Spieler (FACEIT URLs). IDs werden automatisch via `resolve_ids.sh` extrahiert.
+## 🎮 Spielerverwaltung
 
-## 📄 Struktur
+```bash
+# Spieler hinzufügen
+FACEIT_API_KEY=xxx node manage-players.js add noxq
 
-```
-.
-├── data/                  # ELO Snapshots (daily, weekly, monthly, yearly)
-├── icons/                 # Icons und Visuals
-├── index.template.html    # HTML-Template mit Platzhaltern
-├── fetch-elos.js          # Main Script zur ELO-Analyse und HTML-Generierung
-├── players.txt            # Liste der Spieler-Links
-├── resolve_ids.sh         # Script zur Auflösung von player_ids
-├── .github/workflows/     # GitHub Actions für automatisiertes Update
-└── README.md              # Diese Datei
+# Spieler entfernen
+node manage-players.js remove noxq
+
+# Alle Spieler anzeigen
+node manage-players.js list
+
+# Nicknames mit FACEIT abgleichen
+FACEIT_API_KEY=xxx node manage-players.js list --sync
 ```
 
 ## ⏰ Automatisierte Aktualisierung
 
-Das Dashboard aktualisiert sich automatisch alle 30 Minuten über GitHub Actions. Es wird `fetch-elos.js` ausgeführt, welches:
+Das Dashboard aktualisiert sich automatisch alle 30 Minuten über GitHub Actions:
 
-1. Daten über die FACEIT API abruft
-2. Statistiken berechnet und Snapshots erstellt
-3. Die `index.html` neu generiert und auf GitHub Pages veröffentlicht
-
-## 📦 Geplante Features
-
-- 🔍 Filter & Suche nach Spielern
-- 📈 Interaktive Charts mit Chart.js
-- 🧮 Mehr Vergleichsmetriken zwischen Spielern
-- 🏷️ Ranglisten-Sektion (Top K/D, Winrate etc.)
+1. Daten über die FACEIT API abrufen
+2. Statistiken berechnen und ELO-Snapshots erstellen
+3. `index.html` neu generieren und auf GitHub Pages veröffentlichen
 
 ## 📜 Lizenz
 

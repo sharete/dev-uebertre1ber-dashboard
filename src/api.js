@@ -5,7 +5,9 @@ const cache = require('./cache');
 
 const FACEIT_API_KEY = (process.env.FACEIT_API_KEY || "").trim();
 const API_BASE = "https://open.faceit.com/data/v4";
+const REQUEST_TIMEOUT_MS = 15000;
 
+/** @returns {object} HTTP headers with authorization */
 function getHeaders() {
     if (!FACEIT_API_KEY) {
         console.error("❌ Stats: FACEIT_API_KEY is missing/empty!");
@@ -17,10 +19,23 @@ function getHeaders() {
     };
 }
 
+/**
+ * Fetch with retry logic, rate limiting, and timeout.
+ * @param {string} url - Request URL
+ * @param {object} options - Fetch options
+ * @param {number} retries - Max retry count
+ * @param {number} delay - Base delay between retries (ms)
+ * @returns {Promise<Response|null>}
+ */
 async function retryFetch(url, options = {}, retries = 3, delay = 1000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    options.signal = controller.signal;
+
     for (let i = 0; i <= retries; i++) {
         try {
             const res = await fetch(url, options);
+            clearTimeout(timeout);
             if (res.ok) return res;
 
             if (res.status === 404) return null;
@@ -37,13 +52,23 @@ async function retryFetch(url, options = {}, retries = 3, delay = 1000) {
                 continue;
             }
         } catch (e) {
-            console.error(`Fetch error for ${url}:`, e.message);
+            if (e.name === 'AbortError') {
+                console.error(`⏱️ Request timeout for ${url}`);
+            } else {
+                console.error(`Fetch error for ${url}:`, e.message);
+            }
         }
         await new Promise(r => setTimeout(r, delay));
     }
+    clearTimeout(timeout);
     return null;
 }
 
+/**
+ * Safely parses JSON from a response.
+ * @param {Response|null} res - Fetch response
+ * @returns {Promise<object|null>}
+ */
 async function safeJson(res) {
     if (!res) return null;
     try {
@@ -56,9 +81,11 @@ async function safeJson(res) {
 
 class FaceitAPI {
     constructor() {
+        /** @type {Function|null} */
         this.limit = null;
     }
 
+    /** Initializes concurrency limiter and validates API key */
     async init() {
         this.limit = await pLimit(5);
         if (FACEIT_API_KEY) {
@@ -68,6 +95,11 @@ class FaceitAPI {
         }
     }
 
+    /**
+     * Fetches a player profile by nickname or UUID.
+     * @param {string} nicknameOrId - FACEIT nickname or player UUID
+     * @returns {Promise<object|null>}
+     */
     async getPlayer(nicknameOrId) {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(nicknameOrId);
         const endpoint = isUUID ? `players/${nicknameOrId}` : `players?nickname=${nicknameOrId}`;
@@ -75,21 +107,42 @@ class FaceitAPI {
         return safeJson(res);
     }
 
+    /**
+     * Fetches player match history.
+     * @param {string} playerId - Player UUID
+     * @param {number} limit - Max matches to fetch
+     * @returns {Promise<object>}
+     */
     async getPlayerHistory(playerId, limit = 30) {
         const res = await retryFetch(`${API_BASE}/players/${playerId}/history?game=cs2&limit=${limit}`, { headers: getHeaders() });
         return safeJson(res) || { items: [] };
     }
 
+    /**
+     * Fetches full match details.
+     * @param {string} matchId - Match UUID
+     * @returns {Promise<object|null>}
+     */
     async getMatchDetails(matchId) {
         const res = await retryFetch(`${API_BASE}/matches/${matchId}`, { headers: getHeaders() });
         return safeJson(res);
     }
 
+    /**
+     * Fetches lifetime player stats for CS2.
+     * @param {string} playerId - Player UUID
+     * @returns {Promise<object>}
+     */
     async getPlayerStats(playerId) {
         const res = await retryFetch(`${API_BASE}/players/${playerId}/stats/cs2`, { headers: getHeaders() });
         return safeJson(res) || {};
     }
 
+    /**
+     * Fetches ELO history from the FACEIT stats API.
+     * @param {string} playerId - Player UUID
+     * @returns {Promise<Array>}
+     */
     async getEloHistory(playerId) {
         const url = `https://api.faceit.com/stats/v1/stats/time/users/${playerId}/games/cs2?size=100`;
         try {
@@ -104,6 +157,11 @@ class FaceitAPI {
         return [];
     }
 
+    /**
+     * Fetches and caches match stats (per-player stats + map name).
+     * @param {string} matchId - Match UUID
+     * @returns {Promise<object|null>}
+     */
     async getMatchStats(matchId) {
         // Check cache first
         cache.load();

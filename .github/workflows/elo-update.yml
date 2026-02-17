@@ -5,6 +5,9 @@ on:
   - cron: "*/30 * * * *"
   workflow_dispatch:
 
+concurrency:
+  group: elo-update
+  cancel-in-progress: true
 
 jobs:
   update:
@@ -12,17 +15,18 @@ jobs:
 
     steps:
     - name: 📥 Repo auschecken
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: 🟢 Node.js einrichten
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: "20"
+        cache: "npm"
 
     - name: 📦 Abhängigkeiten installieren
-      run: npm install
+      run: npm ci
 
-    - name: 🧠 Puppeteer Script ausführen
+    - name: 🧠 Dashboard generieren
       env:
         FACEIT_API_KEY: ${{ secrets.FACEIT_API_KEY }}
       run: npm start
@@ -33,5 +37,6 @@ jobs:
         git config user.email "faceit-bot@localhost"
         git add index.html
         git add data/*.json || echo "Keine JSON-Dateien zum Hinzufügen"
-        git commit -m "📊 Auto-Update: $(date -u)" || echo "🟡 Keine Änderungen zu committen"
+        git diff --cached --quiet && echo "🟡 Keine Änderungen" && exit 0
+        git commit -m "📊 Auto-Update: $(date -u)"
         git push
