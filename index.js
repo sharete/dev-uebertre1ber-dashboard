@@ -231,9 +231,10 @@ function calculateAwards(results) {
                 
                 if (latestMatchStats) {
                     const matchTs = latestMatchStats.date;
-                    const isNew = matchTs > comparisonTs;
+                    // Comparison: Is it after our threshold?
+                    const isAfterThreshold = matchTs > comparisonTs;
 
-                    if (isNew) {
+                    if (isAfterThreshold) {
                         console.log(`🔔 Sending notification for ${p.nickname}: ${p.latestMatchId}`);
                         
                         // Calculate Elo Diff
@@ -262,13 +263,21 @@ function calculateAwards(results) {
                             eloDiff,
                             teammates: dashboardTeammates
                         });
+                        
+                        // Successfully notified: mark as handled
+                        notificationState.players[p.playerId] = p.latestMatchId;
                     } else {
-                        console.log(`ℹ️ Match for ${p.nickname} is before last run. Skipping notification.`);
+                        const ageH = Math.round((runStartTimeTs - matchTs) / 3600);
+                        console.log(`ℹ️ Match for ${p.nickname} is before threshold (${ageH}h old). Skipping.`);
+                        
+                        // If it's already older than 24h, we mark it as handled to stop checking it
+                        if (ageH > 24) {
+                            notificationState.players[p.playerId] = p.latestMatchId;
+                        }
+                        // If it's RECENT (e.g. 1h old) but before our threshold, we DO NOT mark it as handled yet.
+                        // This allows a corrected threshold in the next run to potentially catch it.
                     }
                 }
-                
-                // Update player specific match ID to prevent double posts if multiple runs happen quickly
-                notificationState.players[p.playerId] = p.latestMatchId;
             }
         }
     }
