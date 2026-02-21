@@ -16,10 +16,19 @@ async function test() {
     };
 
     const dummyMatch = {
+        matchId: "1-abc-123",
         result: "W",
         map: "de_mirage",
+        score: "13:10",
         kd: "1.50",
-        kills: 25
+        kills: 25,
+        deaths: 16,
+        assists: 5,
+        adr: 95.5,
+        hsPercent: 52,
+        mvps: 4,
+        eloDiff: 25,
+        teammates: ["-rolan_", "SaN"]
     };
 
     console.log("⏳ Sending test notification...");

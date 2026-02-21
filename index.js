@@ -224,7 +224,33 @@ function calculateAwards(results) {
 
                     if (isNew) {
                         console.log(`🔔 Sending notification for ${p.nickname}: ${p.latestMatchId}`);
-                        await notifier.sendMatchNotification(p, latestMatchStats);
+                        
+                        // Calculate Elo Diff
+                        let eloDiff = undefined;
+                        const eloHist = p.stats.eloHistory; // oldest first
+                        if (eloHist.length >= 2) {
+                            eloDiff = eloHist[eloHist.length - 1].elo - eloHist[eloHist.length - 2].elo;
+                        }
+
+                        // Detect Dashboard Teammates in this specific match
+                        const matchDetails = await api.getMatchDetails(p.latestMatchId);
+                        const dashboardTeammates = [];
+                        if (matchDetails && matchDetails.teams) {
+                            const allPlayersInMatch = Object.values(matchDetails.teams).flatMap(t => t.roster);
+                            for (const pm of allPlayersInMatch) {
+                                if (pm.nickname === p.nickname) continue;
+                                // Check if this player is in our players list
+                                if (lines.includes(pm.player_id)) {
+                                    dashboardTeammates.push(pm.nickname);
+                                }
+                            }
+                        }
+
+                        await notifier.sendMatchNotification(p, {
+                            ...latestMatchStats,
+                            eloDiff,
+                            teammates: dashboardTeammates
+                        });
                     } else {
                         console.log(`ℹ️ Match for ${p.nickname} is before last run. Skipping notification.`);
                     }

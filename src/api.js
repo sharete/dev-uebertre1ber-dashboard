@@ -191,8 +191,9 @@ class FaceitAPI {
             };
         }
 
-        // Store map name at top level so stats.js can access it
+        // Store map name and score at top level so stats.js can access it
         mapStats.__mapName = mapName;
+        mapStats.__score = score;
 
         cache.set(matchId, mapStats);
         cache.save();

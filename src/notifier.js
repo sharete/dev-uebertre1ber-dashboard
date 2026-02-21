@@ -35,19 +35,38 @@ class DiscordNotifier {
     _formatMatchEmbed(player, match) {
         const isWin = match.result === "W";
         const color = isWin ? 0x00FF00 : 0xFF0000; // Green for win, Red for loss
-        const title = isWin ? "🏆 Sieg für " + player.nickname : "💀 Niederlage für " + player.nickname;
         
+        // Match Link
+        const matchUrl = `https://www.faceit.com/en/cs2/room/${match.matchId}`;
+        
+        // Elo Diff
+        const eloDiff = match.eloDiff !== undefined ? (match.eloDiff >= 0 ? ` (+${match.eloDiff})` : ` (${match.eloDiff})`) : "";
+        
+        let title = isWin ? "🏆 Sieg für " + player.nickname : "💀 Niederlage für " + player.nickname;
+        if (match.score) title += ` (${match.score})`;
+
+        const fields = [
+            { name: "Map", value: match.map || "Unknown", inline: true },
+            { name: "Score", value: match.score || "—", inline: true },
+            { name: "Elo", value: `${player.elo}${eloDiff}`, inline: true },
+            { name: "K/D", value: match.kd || "0.00", inline: true },
+            { name: "Kills", value: `${match.kills}/${match.deaths}${match.assists ? " (" + match.assists + ")" : ""}`, inline: true },
+            { name: "ADR", value: match.adr ? match.adr.toFixed(1) : "—", inline: true },
+            { name: "HS %", value: match.hsPercent ? match.hsPercent + "%" : "—", inline: true },
+            { name: "MVPs", value: match.mvps?.toString() || "0", inline: true },
+            { name: "Match Link", value: `[Room](${matchUrl})`, inline: true }
+        ];
+
+        if (match.teammates && match.teammates.length > 0) {
+            fields.push({ name: "Dashboard Teammates", value: match.teammates.join(", "), inline: false });
+        }
+
         return {
             title: title,
             url: player.faceitUrl,
             color: color,
             thumbnail: { url: player.avatar || "https://corporate.faceit.com/wp-content/uploads/icon-faceit-300x300.png" },
-            fields: [
-                { name: "Map", value: match.map || "Unknown", inline: true },
-                { name: "K/D", value: match.kd || "0.00", inline: true },
-                { name: "Kills", value: match.kills.toString(), inline: true },
-                { name: "Elo", value: player.elo.toString(), inline: true }
-            ],
+            fields: fields,
             footer: { text: "Faceit Dashboard Update • " + new Date().toLocaleString("de-DE") }
         };
     }

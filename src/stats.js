@@ -99,12 +99,18 @@ class StatsCalculator {
                 const mKD = mDeaths ? (mKills / mDeaths).toFixed(2) : (mKills > 0 ? "10.0" : "0.00");
                 
                 detailedHistory.push({
+                    matchId: matchId,
                     date: match.finished_at,
                     kd: mKD,
                     result: didWin ? "W" : "L",
                     map: mapName,
+                    score: stats.__score || "0 - 0",
                     kills: mKills,
-                    deaths: mDeaths
+                    deaths: mDeaths,
+                    assists: +playerStats.Assists || 0,
+                    adr: +playerStats.ADR || 0,
+                    hsPercent: playerStats["Headshots %"] || (mKills ? Math.round((+playerStats.Headshots || 0) / mKills * 100) : 0),
+                    mvps: +playerStats.MVPs || 0
                 });
             }
 
