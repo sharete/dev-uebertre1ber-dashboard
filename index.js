@@ -174,24 +174,35 @@ function calculateAwards(results) {
 
     // Load notification state
     let notificationState = { lastRunTs: 0, players: {} };
+    let isMigration = false;
+    let isBrandNew = true;
+
     if (fs.existsSync(NOTIFICATION_STATE_FILE)) {
+        isBrandNew = false;
         try {
             const data = JSON.parse(fs.readFileSync(NOTIFICATION_STATE_FILE, "utf-8"));
             if (data.players) {
                 notificationState = data;
             } else {
-                // Migration from old format
-                notificationState = { lastRunTs: Math.floor(Date.now() / 1000), players: data };
+                // Migration from old format (only players map)
+                notificationState = { lastRunTs: 0, players: data };
+                isMigration = true;
             }
         } catch (e) {
             console.error("⚠️ Failed to load notification state:", e.message);
         }
     }
 
-    // If it's the very first run (no lastRunTs), seed it with current time to prevent backlog spam
-    if (notificationState.lastRunTs === 0) {
-        notificationState.lastRunTs = Math.floor(Date.now() / 1000);
-        console.log(`ℹ️ Initial run: Seeding lastRunTs to ${notificationState.lastRunTs}`);
+    const runStartTimeTs = Math.floor(Date.now() / 1000);
+    let comparisonTs = notificationState.lastRunTs;
+
+    if (isBrandNew) {
+        console.log("ℹ️ Brand new installation. Initial seeding will occur after processing.");
+        comparisonTs = runStartTimeTs; 
+    } else if (isMigration || comparisonTs === 0) {
+        console.log("ℹ️ Migrating to time-based tracking. Using 24h fallback for this run.");
+        // Allow matches from the last 24h during migration transition
+        comparisonTs = runStartTimeTs - 24 * 3600;
     }
 
     const lines = fs.readFileSync(PLAYERS_FILE, "utf-8")
@@ -220,7 +231,7 @@ function calculateAwards(results) {
                 
                 if (latestMatchStats) {
                     const matchTs = latestMatchStats.date;
-                    const isNew = matchTs > notificationState.lastRunTs;
+                    const isNew = matchTs > comparisonTs;
 
                     if (isNew) {
                         console.log(`🔔 Sending notification for ${p.nickname}: ${p.latestMatchId}`);
@@ -377,8 +388,8 @@ function calculateAwards(results) {
         awards
     });
 
-    // Update lastRunTs to current time
-    notificationState.lastRunTs = Math.floor(Date.now() / 1000);
+    // Update lastRunTs to the time we started processing
+    notificationState.lastRunTs = runStartTimeTs;
 
     // Save notification state
     fs.writeFileSync(NOTIFICATION_STATE_FILE, JSON.stringify(notificationState, null, 2));
