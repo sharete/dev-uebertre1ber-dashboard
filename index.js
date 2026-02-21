@@ -197,8 +197,8 @@ function calculateAwards(results) {
     let comparisonTs = notificationState.lastRunTs;
 
     if (isBrandNew) {
-        console.log("ℹ️ Brand new installation. Initial seeding will occur after processing.");
-        comparisonTs = runStartTimeTs; 
+        console.log("ℹ️ Brand new installation. Using 24h fallback for initial seeding.");
+        comparisonTs = runStartTimeTs - 24 * 3600; 
     } else if (isMigration || comparisonTs === 0) {
         console.log("ℹ️ Migrating to time-based tracking. Using 24h fallback for this run.");
         // Allow matches from the last 24h during migration transition
