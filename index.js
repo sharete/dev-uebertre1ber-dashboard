@@ -202,13 +202,23 @@ function calculateAwards(results) {
             const lastSavedMatchId = notificationState[p.playerId];
             if (p.latestMatchId && p.latestMatchId !== lastSavedMatchId) {
                 // New match detected!
-                console.log(`🔔 New match for ${p.nickname}: ${p.latestMatchId}`);
                 
-                // Fetch details for the notification (Map, KD, etc. are already in p.stats)
+                // Fetch details for the notification
                 const latestMatchStats = p.stats.matchHistory[0]; // newest is first
                 
-                if (latestMatchStats) {
-                    await notifier.sendMatchNotification(p, latestMatchStats);
+                if (latestMatchStats && lastSavedMatchId !== undefined) {
+                    const nowTs = DateTime.now().toSeconds();
+                    const matchTs = latestMatchStats.date;
+                    const isRecent = (nowTs - matchTs) < 24 * 3600; // Within last 24 hours
+
+                    if (isRecent) {
+                        console.log(`🔔 Sending notification for ${p.nickname}: ${p.latestMatchId}`);
+                        await notifier.sendMatchNotification(p, latestMatchStats);
+                    } else {
+                        console.log(`ℹ️ Match for ${p.nickname} is too old (${Math.round((nowTs - matchTs) / 3600)}h). Skipping notification.`);
+                    }
+                } else if (lastSavedMatchId === undefined) {
+                    console.log(`ℹ️ Seeding initial state for ${p.nickname}: ${p.latestMatchId}`);
                 }
                 
                 // Update state
