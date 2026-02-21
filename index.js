@@ -6,9 +6,11 @@ const api = require('./src/api');
 const stats = require('./src/stats');
 const renderer = require('./src/renderer');
 const { normalizeMapName } = require('./src/map_utils');
+const notifier = require('./src/notifier');
 
 const PLAYERS_FILE = "players.txt";
 const DATA_DIR = path.join(__dirname, "data");
+const NOTIFICATION_STATE_FILE = path.join(DATA_DIR, "discord_state.json");
 const TEMPLATE_FILE = "index.template.html";
 const OUTPUT_FILE = "index.html";
 const MAX_MATCHES = 30;
@@ -111,6 +113,8 @@ async function processPlayer(playerId) {
             matches: playerStats.lifetime ? playerStats.lifetime["Matches"] : "—",
             lastMatch,
             lastMatchTs,
+            latestMatchId: history.items[0]?.match_id || null,
+            latestMatchResult: calculatedStats.last5[0] || null,
             stats: calculatedStats
         };
 
@@ -168,6 +172,16 @@ function calculateAwards(results) {
 
     await api.init();
 
+    // Load notification state
+    let notificationState = {};
+    if (fs.existsSync(NOTIFICATION_STATE_FILE)) {
+        try {
+            notificationState = JSON.parse(fs.readFileSync(NOTIFICATION_STATE_FILE, "utf-8"));
+        } catch (e) {
+            console.error("⚠️ Failed to load notification state:", e.message);
+        }
+    }
+
     const lines = fs.readFileSync(PLAYERS_FILE, "utf-8")
         .trim()
         .split("\n")
@@ -181,7 +195,26 @@ function calculateAwards(results) {
         const id = lines[i];
         console.log(`  ⏳ Processing ${i + 1}/${lines.length}: ${id.substring(0, 8)}...`);
         const p = await processPlayer(id);
-        if (p) results.push(p);
+        if (p) {
+            results.push(p);
+
+            // Discord Notification Logic
+            const lastSavedMatchId = notificationState[p.playerId];
+            if (p.latestMatchId && p.latestMatchId !== lastSavedMatchId) {
+                // New match detected!
+                console.log(`🔔 New match for ${p.nickname}: ${p.latestMatchId}`);
+                
+                // Fetch details for the notification (Map, KD, etc. are already in p.stats)
+                const latestMatchStats = p.stats.matchHistory[0]; // newest is first
+                
+                if (latestMatchStats) {
+                    await notifier.sendMatchNotification(p, latestMatchStats);
+                }
+                
+                // Update state
+                notificationState[p.playerId] = p.latestMatchId;
+            }
+        }
     }
 
     results.sort((a, b) => b.elo - a.elo);
@@ -298,6 +331,9 @@ function calculateAwards(results) {
         historyData: snapshotData,
         awards
     });
+
+    // Save notification state
+    fs.writeFileSync(NOTIFICATION_STATE_FILE, JSON.stringify(notificationState, null, 2));
 
     console.log("✨ Done!");
 })();

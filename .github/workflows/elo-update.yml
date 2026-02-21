@@ -29,6 +29,7 @@ jobs:
     - name: 🧠 Dashboard generieren
       env:
         FACEIT_API_KEY: ${{ secrets.FACEIT_API_KEY }}
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: npm start
 
     - name: 🔁 Änderungen committen und pushen
