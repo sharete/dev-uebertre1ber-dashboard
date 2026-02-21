@@ -173,13 +173,25 @@ function calculateAwards(results) {
     await api.init();
 
     // Load notification state
-    let notificationState = {};
+    let notificationState = { lastRunTs: 0, players: {} };
     if (fs.existsSync(NOTIFICATION_STATE_FILE)) {
         try {
-            notificationState = JSON.parse(fs.readFileSync(NOTIFICATION_STATE_FILE, "utf-8"));
+            const data = JSON.parse(fs.readFileSync(NOTIFICATION_STATE_FILE, "utf-8"));
+            if (data.players) {
+                notificationState = data;
+            } else {
+                // Migration from old format
+                notificationState = { lastRunTs: Math.floor(Date.now() / 1000), players: data };
+            }
         } catch (e) {
             console.error("⚠️ Failed to load notification state:", e.message);
         }
+    }
+
+    // If it's the very first run (no lastRunTs), seed it with current time to prevent backlog spam
+    if (notificationState.lastRunTs === 0) {
+        notificationState.lastRunTs = Math.floor(Date.now() / 1000);
+        console.log(`ℹ️ Initial run: Seeding lastRunTs to ${notificationState.lastRunTs}`);
     }
 
     const lines = fs.readFileSync(PLAYERS_FILE, "utf-8")
@@ -199,30 +211,27 @@ function calculateAwards(results) {
             results.push(p);
 
             // Discord Notification Logic
-            const lastSavedMatchId = notificationState[p.playerId];
+            const lastSavedMatchId = notificationState.players[p.playerId];
             if (p.latestMatchId && p.latestMatchId !== lastSavedMatchId) {
-                // New match detected!
+                // New match ID detected
                 
                 // Fetch details for the notification
                 const latestMatchStats = p.stats.matchHistory[0]; // newest is first
                 
-                if (latestMatchStats && lastSavedMatchId !== undefined) {
-                    const nowTs = DateTime.now().toSeconds();
+                if (latestMatchStats) {
                     const matchTs = latestMatchStats.date;
-                    const isRecent = (nowTs - matchTs) < 24 * 3600; // Within last 24 hours
+                    const isNew = matchTs > notificationState.lastRunTs;
 
-                    if (isRecent) {
+                    if (isNew) {
                         console.log(`🔔 Sending notification for ${p.nickname}: ${p.latestMatchId}`);
                         await notifier.sendMatchNotification(p, latestMatchStats);
                     } else {
-                        console.log(`ℹ️ Match for ${p.nickname} is too old (${Math.round((nowTs - matchTs) / 3600)}h). Skipping notification.`);
+                        console.log(`ℹ️ Match for ${p.nickname} is before last run. Skipping notification.`);
                     }
-                } else if (lastSavedMatchId === undefined) {
-                    console.log(`ℹ️ Seeding initial state for ${p.nickname}: ${p.latestMatchId}`);
                 }
                 
-                // Update state
-                notificationState[p.playerId] = p.latestMatchId;
+                // Update player specific match ID to prevent double posts if multiple runs happen quickly
+                notificationState.players[p.playerId] = p.latestMatchId;
             }
         }
     }
@@ -341,6 +350,9 @@ function calculateAwards(results) {
         historyData: snapshotData,
         awards
     });
+
+    // Update lastRunTs to current time
+    notificationState.lastRunTs = Math.floor(Date.now() / 1000);
 
     // Save notification state
     fs.writeFileSync(NOTIFICATION_STATE_FILE, JSON.stringify(notificationState, null, 2));
