@@ -73,17 +73,25 @@ class DiscordNotifier {
 
     /** @private */
     async _sendViaWebhook(embed) {
-        try {
-            const res = await fetch(this.webhookUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ embeds: [embed] })
-            });
-            return res.ok;
-        } catch (e) {
-            console.error("❌ Discord Webhook Error:", e.message);
-            return false;
-        }
+        const urls = this.webhookUrl.split(",").map(u => u.trim()).filter(u => u.length > 0);
+        
+        if (urls.length === 0) return false;
+
+        const results = await Promise.all(urls.map(async (url) => {
+            try {
+                const res = await fetch(url.trim(), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ embeds: [embed] })
+                });
+                return res.ok;
+            } catch (e) {
+                console.error(`❌ Discord Webhook Error (${url}):`, e.message);
+                return false;
+            }
+        }));
+
+        return results.some(r => r === true);
     }
 
     /** @private */
