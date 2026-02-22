@@ -78,20 +78,33 @@ async function processPlayer(playerId, historyCache) {
         if (!currentElo) return null;
 
         // --- Elo History Logic ---
-        // 1. Start with cached history
         let eloHistoryData = historyCache[playerId] || [];
+        
+        // 2. Decide if we should try to seed/update history
+        // We update if:
+        // - Cache is empty (new player)
+        // - Cache is short (< 30 entries)
+        // - or occasionally to keep it fresh/calibrated with the internal API
+        const needsSeeding = eloHistoryData.length < 100;
 
-        // 2. If we got a fresh history from api.faceit.com, update the cache
         if (freshEloHistory && freshEloHistory.length > 0) {
-            eloHistoryData = freshEloHistory;
-            historyCache[playerId] = freshEloHistory;
+            if (needsSeeding || freshEloHistory.length >= eloHistoryData.length) {
+                // For new players or if fresh history covers more ground, just use it
+                eloHistoryData = freshEloHistory;
+            } else {
+                // Merge fresh points that we don't have yet
+                const existingDates = new Set(eloHistoryData.map(h => h.date));
+                const newPoints = freshEloHistory.filter(h => !existingDates.has(h.date));
+                if (newPoints.length > 0) {
+                    eloHistoryData = [...eloHistoryData, ...newPoints].sort((a, b) => a.date - b.date);
+                }
+            }
+            historyCache[playerId] = eloHistoryData;
         } else if (currentElo) {
             // 3. If fresh history failed (Cloudflare block), append the current Elo to the existing cache
-            // We only append if it's a new timestamp or a different Elo
             const lastTs = history.items[0]?.finished_at;
             const nowTs = lastTs ? lastTs * 1000 : Date.now();
             
-            // Check if we already have this point
             const alreadyExists = eloHistoryData.some(h => Math.abs(h.date - nowTs) < 60000); // within 1 minute
             
             if (!alreadyExists) {
@@ -99,13 +112,17 @@ async function processPlayer(playerId, historyCache) {
                     date: nowTs,
                     elo: String(currentElo)
                 });
-                
-                // Keep history lean (matching FACEIT size)
-                if (eloHistoryData.length > 150) eloHistoryData.shift();
-                
                 historyCache[playerId] = eloHistoryData;
             }
+            
+            if (eloHistoryData.length === 1) {
+                console.warn(`⚠️ Only 1 Elo data point for ${profile.nickname}. History fetch likely blocked by Cloudflare.`);
+            }
         }
+        
+        // Keep history at reasonable size
+        if (eloHistoryData.length > 300) eloHistoryData = eloHistoryData.slice(-300);
+        historyCache[playerId] = eloHistoryData;
 
         // Fetch match stats for all matches in history
         const matchStatsMap = {};
