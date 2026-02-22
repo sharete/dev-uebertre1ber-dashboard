@@ -150,11 +150,11 @@ class FaceitAPI {
         
         try {
             // We use curl because native node-fetch/undici is often blocked by Cloudflare JA3 fingerprinting
-            // In GitHub Actions, we need extremely robust headers to simulate a real browser
+            // In GitHub Actions, we use browser-like headers. 
+            // NOTE: We do NOT use the Developer API key here as this is the internal stats API.
             const browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
             
-            // Adding modern Client Hints and more precise headers that a real browser sends
-            const command = `curl -s -L --compressed --http2 \
+            const command = `curl -s -L --compressed \
                 -H "User-Agent: ${browserUA}" \
                 -H "Accept: application/json, text/plain, */*" \
                 -H "Accept-Language: en-US,en;q=0.9" \
@@ -163,10 +163,6 @@ class FaceitAPI {
                 -H "Sec-Fetch-Dest: empty" \
                 -H "Sec-Fetch-Mode: cors" \
                 -H "Sec-Fetch-Site: same-site" \
-                -H "sec-ch-ua: \\"Not A(Brand\\";v=\\"99\\", \\"Google Chrome\\";v=\\"121\\", \\"Chromium\\";v=\\"121\\"" \
-                -H "sec-ch-ua-mobile: ?0" \
-                -H "sec-ch-ua-platform: \\"Windows\\"" \
-                -H "Authorization: Bearer ${process.env.FACEIT_API_KEY}" \
                 "${url}"`;
             
             const output = execSync(command, { encoding: 'utf8' }).trim();
@@ -174,9 +170,8 @@ class FaceitAPI {
             
             // Validate if it's actually JSON before parsing
             if (!output.startsWith('[') && !output.startsWith('{')) {
-                // If we get "Just a moment", it's a Cloudflare challenge
                 if (output.includes("Just a moment")) {
-                    console.error(`⚠️ Cloudflare challenge detected for ${playerId} in GitHub Actions. Falling back to empty history.`);
+                    console.warn(`⚠️ Cloudflare challenge detected for ${playerId}.`);
                 } else {
                     console.error(`❌ Received non-JSON response for ${playerId}. First 100 chars: ${output.substring(0, 100)}`);
                 }
@@ -184,6 +179,9 @@ class FaceitAPI {
             }
 
             const data = JSON.parse(output);
+            if (Array.isArray(data) && data.length > 0) {
+                console.log(`✅ Fetched ${data.length} Elo history items for ${playerId}`);
+            }
             return data || [];
         } catch (e) {
             console.error(`❌ Failed to fetch ELO history for ${playerId} via curl:`, e.message);

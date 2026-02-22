@@ -11,6 +11,7 @@ const notifier = require('./src/notifier');
 const PLAYERS_FILE = "players.txt";
 const DATA_DIR = path.join(__dirname, "data");
 const NOTIFICATION_STATE_FILE = path.join(DATA_DIR, "discord_state.json");
+const HISTORY_CACHE_FILE = path.join(DATA_DIR, "history-cache.json");
 const TEMPLATE_FILE = "index.template.html";
 const OUTPUT_FILE = "index.html";
 const MAX_MATCHES = 30;
@@ -40,9 +41,28 @@ function getPeriodStart(range) {
     }
 }
 
-async function processPlayer(playerId) {
+function loadHistoryCache() {
+    if (fs.existsSync(HISTORY_CACHE_FILE)) {
+        try {
+            return JSON.parse(fs.readFileSync(HISTORY_CACHE_FILE, "utf-8"));
+        } catch (e) {
+            console.error("⚠️ Failed to load history cache:", e.message);
+        }
+    }
+    return {};
+}
+
+function saveHistoryCache(cache) {
     try {
-        const [profile, history, playerStats, eloHistoryData] = await Promise.all([
+        fs.writeFileSync(HISTORY_CACHE_FILE, JSON.stringify(cache, null, 2));
+    } catch (e) {
+        console.error("⚠️ Failed to save history cache:", e.message);
+    }
+}
+
+async function processPlayer(playerId, historyCache) {
+    try {
+        const [profile, history, playerStats, freshEloHistory] = await Promise.all([
             api.getPlayer(playerId),
             api.getPlayerHistory(playerId, 30),
             api.getPlayerStats(playerId),
@@ -54,8 +74,38 @@ async function processPlayer(playerId) {
             return null;
         }
 
-        const elo = profile.games?.cs2?.faceit_elo || null;
-        if (!elo) return null;
+        const currentElo = profile.games?.cs2?.faceit_elo || null;
+        if (!currentElo) return null;
+
+        // --- Elo History Logic ---
+        // 1. Start with cached history
+        let eloHistoryData = historyCache[playerId] || [];
+
+        // 2. If we got a fresh history from api.faceit.com, update the cache
+        if (freshEloHistory && freshEloHistory.length > 0) {
+            eloHistoryData = freshEloHistory;
+            historyCache[playerId] = freshEloHistory;
+        } else if (currentElo) {
+            // 3. If fresh history failed (Cloudflare block), append the current Elo to the existing cache
+            // We only append if it's a new timestamp or a different Elo
+            const lastTs = history.items[0]?.finished_at;
+            const nowTs = lastTs ? lastTs * 1000 : Date.now();
+            
+            // Check if we already have this point
+            const alreadyExists = eloHistoryData.some(h => Math.abs(h.date - nowTs) < 60000); // within 1 minute
+            
+            if (!alreadyExists) {
+                eloHistoryData.push({
+                    date: nowTs,
+                    elo: String(currentElo)
+                });
+                
+                // Keep history lean (matching FACEIT size)
+                if (eloHistoryData.length > 150) eloHistoryData.shift();
+                
+                historyCache[playerId] = eloHistoryData;
+            }
+        }
 
         // Fetch match stats for all matches in history
         const matchStatsMap = {};
@@ -106,7 +156,7 @@ async function processPlayer(playerId) {
             playerId: profile.player_id,
             nickname: profile.nickname,
             avatar: profile.avatar || "",
-            elo,
+            elo: currentElo,
             level: profile.games?.cs2?.skill_level || 0,
             faceitUrl: url,
             winrate: playerStats.lifetime ? playerStats.lifetime["Win Rate %"] + "%" : "—",
@@ -211,13 +261,15 @@ function calculateAwards(results) {
         .map(l => l.split(/#|\/\//)[0].trim())
         .filter(Boolean);
 
+    const historyCache = loadHistoryCache();
+
     console.log(`ℹ️ Processing ${lines.length} players...`);
 
     const results = [];
     for (let i = 0; i < lines.length; i++) {
         const id = lines[i];
         console.log(`  ⏳ Processing ${i + 1}/${lines.length}: ${id.substring(0, 8)}...`);
-        const p = await processPlayer(id);
+        const p = await processPlayer(id, historyCache);
         if (p) {
             results.push(p);
 
@@ -402,6 +454,9 @@ function calculateAwards(results) {
 
     // Save notification state
     fs.writeFileSync(NOTIFICATION_STATE_FILE, JSON.stringify(notificationState, null, 2));
+
+    // Save history cache
+    saveHistoryCache(historyCache);
 
     console.log("✨ Done!");
 })();
