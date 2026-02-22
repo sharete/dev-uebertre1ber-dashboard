@@ -61,13 +61,16 @@ class DiscordNotifier {
             fields.push({ name: "Dashboard Teammates", value: match.teammates.join(", "), inline: false });
         }
 
+        const timestamp = match.date ? match.date * 1000 : Date.now();
+        const footerDate = new Date(timestamp).toLocaleString("de-DE");
+
         return {
             title: title,
             url: player.faceitUrl,
             color: color,
             thumbnail: { url: player.avatar || "https://corporate.faceit.com/wp-content/uploads/icon-faceit-300x300.png" },
             fields: fields,
-            footer: { text: "Faceit Dashboard Update • " + new Date().toLocaleString("de-DE") }
+            footer: { text: "Match-Zeitpunkt • " + footerDate }
         };
     }
 

@@ -28,6 +28,7 @@ async function test() {
         hsPercent: 52,
         mvps: 4,
         eloDiff: 25,
+        date: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
         teammates: ["-rolan_", "SaN"]
     };
 
