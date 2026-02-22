@@ -140,19 +140,26 @@ class FaceitAPI {
 
     /**
      * Fetches ELO history from the FACEIT stats API.
+     * Uses curl to bypass Cloudflare protection if fetch is blocked.
      * @param {string} playerId - Player UUID
      * @returns {Promise<Array>}
      */
     async getEloHistory(playerId) {
         const url = `https://api.faceit.com/stats/v1/stats/time/users/${playerId}/games/cs2?size=100`;
+        const { execSync } = require('child_process');
+        
         try {
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                return data || [];
-            }
+            // We use curl because native node-fetch/undici is often blocked by Cloudflare JA3 fingerprinting
+            const browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            const command = `curl -s -H "User-Agent: ${browserUA}" -H "Accept: application/json" "${url}"`;
+            
+            const output = execSync(command).toString();
+            if (!output) return [];
+            
+            const data = JSON.parse(output);
+            return data || [];
         } catch (e) {
-            console.error(`Failed to fetch ELO history for ${playerId}:`, e.message);
+            console.error(`❌ Failed to fetch ELO history for ${playerId} via curl:`, e.message);
         }
         return [];
     }
