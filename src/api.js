@@ -150,12 +150,28 @@ class FaceitAPI {
         
         try {
             // We use curl because native node-fetch/undici is often blocked by Cloudflare JA3 fingerprinting
-            const browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-            const command = `curl -s -H "User-Agent: ${browserUA}" -H "Accept: application/json" "${url}"`;
+            // In GitHub Actions, we need even more robust headers to simulate a real browser
+            const browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
+            const command = `curl -s -L --compressed \
+                -H "User-Agent: ${browserUA}" \
+                -H "Accept: application/json, text/plain, */*" \
+                -H "Accept-Language: de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7" \
+                -H "Referer: https://www.faceit.com/de/players/${playerId}" \
+                -H "Origin: https://www.faceit.com" \
+                -H "Sec-Fetch-Dest: empty" \
+                -H "Sec-Fetch-Mode: cors" \
+                -H "Sec-Fetch-Site: same-site" \
+                "${url}"`;
             
-            const output = execSync(command).toString();
+            const output = execSync(command).toString().trim();
             if (!output) return [];
             
+            // Validate if it's actually JSON before parsing
+            if (!output.startsWith('[') && !output.startsWith('{')) {
+                console.error(`❌ Received non-JSON response for ${playerId} (likely Cloudflare block). First 100 chars: ${output.substring(0, 100)}`);
+                return [];
+            }
+
             const data = JSON.parse(output);
             return data || [];
         } catch (e) {
