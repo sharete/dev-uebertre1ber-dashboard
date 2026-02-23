@@ -308,9 +308,9 @@ function calculateAwards(results) {
                         
                         // Calculate Elo Diff
                         let eloDiff = undefined;
-                        const eloHist = p.stats.eloHistory; // oldest first
+                        const eloHist = p.stats.eloHistory; // newest first
                         if (eloHist.length >= 2) {
-                            eloDiff = eloHist[eloHist.length - 1].elo - eloHist[eloHist.length - 2].elo;
+                            eloDiff = eloHist[0].elo - eloHist[1].elo;
                         }
 
                         // Detect Dashboard Teammates in this specific match

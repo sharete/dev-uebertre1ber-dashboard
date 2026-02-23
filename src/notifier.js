@@ -42,12 +42,22 @@ class DiscordNotifier {
         // Elo Diff
         const eloDiff = match.eloDiff !== undefined ? (match.eloDiff >= 0 ? ` (+${match.eloDiff})` : ` (${match.eloDiff})`) : "";
         
+        let formattedScore = match.score || "—";
+        if (formattedScore !== "—") {
+            const [s1, s2] = formattedScore.split(" / ").map(Number);
+            if (!isNaN(s1) && !isNaN(s2)) {
+                formattedScore = isWin 
+                    ? `${Math.max(s1, s2)} / ${Math.min(s1, s2)}` 
+                    : `${Math.min(s1, s2)} / ${Math.max(s1, s2)}`;
+            }
+        }
+
         let title = isWin ? "🏆 Sieg für " + player.nickname : "💀 Niederlage für " + player.nickname;
-        if (match.score) title += ` (${match.score})`;
+        if (formattedScore !== "—") title += ` (${formattedScore})`;
 
         const fields = [
             { name: "Map", value: match.map || "Unknown", inline: true },
-            { name: "Score", value: match.score || "—", inline: true },
+            { name: "Score", value: formattedScore, inline: true },
             { name: "Elo", value: `${player.elo}${eloDiff}`, inline: true },
             { name: "K/D", value: match.kd || "0.00", inline: true },
             { name: "Kills", value: `${match.kills}/${match.deaths}${match.assists ? " (" + match.assists + ")" : ""}`, inline: true },
