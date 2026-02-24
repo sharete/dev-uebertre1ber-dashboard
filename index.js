@@ -292,29 +292,54 @@ function calculateAwards(results) {
 
             // Discord Notification Logic
             const lastSavedMatchId = notificationState.players[p.playerId];
-            if (p.latestMatchId && p.latestMatchId !== lastSavedMatchId) {
-                // New match ID detected
-                
-                // Fetch details for the notification
-                const latestMatchStats = p.stats.matchHistory[0]; // newest is first
-                
-                if (latestMatchStats) {
-                    const matchTs = latestMatchStats.date;
-                    // Comparison: Is it after our threshold?
-                    const isAfterThreshold = matchTs > comparisonTs;
+            
+            // Find all new matches
+            let newMatches = [];
+            if (p.stats.matchHistory && p.stats.matchHistory.length > 0) {
+                if (lastSavedMatchId) {
+                    const lastIdx = p.stats.matchHistory.findIndex(m => m.matchId === lastSavedMatchId);
+                    if (lastIdx > 0) {
+                        // Matches from 0 up to lastIdx - 1 are new
+                        newMatches = p.stats.matchHistory.slice(0, lastIdx);
+                    } else if (lastIdx === -1) {
+                        // Fallback if match fell out of history
+                        newMatches = p.stats.matchHistory.filter(m => m.date > comparisonTs);
+                    }
+                } else {
+                    newMatches = p.stats.matchHistory.filter(m => m.date > comparisonTs);
+                }
+            }
 
-                    if (isAfterThreshold) {
-                        console.log(`🔔 Sending notification for ${p.nickname}: ${p.latestMatchId}`);
+            if (newMatches.length > 0) {
+                // Process oldest new match first for chronological notifications
+                newMatches.reverse();
+                
+                let lastSuccessfullyHandledId = lastSavedMatchId;
+
+                for (const matchStats of newMatches) {
+                    const matchTs = matchStats.date;
+                    const isAfterThreshold = matchTs > comparisonTs;
+                    const ageH = Math.round((runStartTimeTs - matchTs) / 3600);
+
+                    // We allow matches slightly older than comparisonTs if they are decidedly new (came after lastSavedMatchId) and < 24h
+                    if (isAfterThreshold || (lastSavedMatchId && ageH <= 24)) {
+                        console.log(`🔔 Sending notification for ${p.nickname}: ${matchStats.matchId}`);
                         
                         // Calculate Elo Diff
                         let eloDiff = undefined;
+                        let matchElo = p.elo; // fallback to current Elo
+                        
                         const eloHist = p.stats.eloHistory; // newest first
-                        if (eloHist.length >= 2) {
-                            eloDiff = eloHist[0].elo - eloHist[1].elo;
+                        // Find the corresponding Elo entry for this exact match time (+/- 1h)
+                        const closestEloEntry = eloHist.find(e => e.date >= matchTs - 3600 && e.date <= matchTs + 3600);
+                        
+                        if (closestEloEntry) {
+                            matchElo = closestEloEntry.elo;
+                            eloDiff = closestEloEntry.eloDiff;
                         }
 
                         // Detect Dashboard Teammates in this specific match
-                        const matchDetails = await api.getMatchDetails(p.latestMatchId);
+                        const matchDetails = await api.getMatchDetails(matchStats.matchId);
                         const dashboardTeammates = [];
                         if (matchDetails && matchDetails.teams) {
                             const allPlayersInMatch = Object.values(matchDetails.teams).flatMap(t => t.roster);
@@ -327,25 +352,24 @@ function calculateAwards(results) {
                             }
                         }
 
-                        await notifier.sendMatchNotification(p, {
-                            ...latestMatchStats,
+                        await notifier.sendMatchNotification({ ...p, elo: matchElo }, {
+                            ...matchStats,
                             eloDiff,
                             teammates: dashboardTeammates
                         });
                         
-                        // Successfully notified: mark as handled
-                        notificationState.players[p.playerId] = p.latestMatchId;
+                        lastSuccessfullyHandledId = matchStats.matchId;
                     } else {
-                        const ageH = Math.round((runStartTimeTs - matchTs) / 3600);
-                        console.log(`ℹ️ Match for ${p.nickname} is before threshold (${ageH}h old). Skipping.`);
-                        
-                        // If it's already older than 24h, we mark it as handled to stop checking it
+                        console.log(`ℹ️ Match ${matchStats.matchId} for ${p.nickname} is before threshold (${ageH}h old). Skipping.`);
                         if (ageH > 24) {
-                            notificationState.players[p.playerId] = p.latestMatchId;
+                            lastSuccessfullyHandledId = matchStats.matchId;
                         }
-                        // If it's RECENT (e.g. 1h old) but before our threshold, we DO NOT mark it as handled yet.
-                        // This allows a corrected threshold in the next run to potentially catch it.
                     }
+                }
+                
+                // Update final handled ID
+                if (lastSuccessfullyHandledId) {
+                    notificationState.players[p.playerId] = lastSuccessfullyHandledId;
                 }
             }
         }

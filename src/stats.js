@@ -172,7 +172,8 @@ class StatsCalculator {
         const eloHistory = (externalEloHistory || [])
             .map(item => ({
                 date: Math.floor(item.date / 1000),
-                elo: parseInt(item.elo)
+                elo: parseInt(item.elo),
+                eloDiff: item.elo_delta !== undefined && item.elo_delta !== "" ? parseInt(item.elo_delta) : undefined
             }))
             .filter(item => !isNaN(item.date) && !isNaN(item.elo))
             .reverse();
