@@ -87356,55 +87356,6 @@
   "b1373334-5842-4fa6-90b8-da0479ee94c0": [
     {
       "_id": {
-        "matchId": "698cda780d98c02b4f5656e3",
-        "playerId": "b1373334-5842-4fa6-90b8-da0479ee94c0"
-      },
-      "created_at": 1770838649069,
-      "updated_at": 1770838739200,
-      "i10": "0",
-      "i13": "4",
-      "i15": "0",
-      "i14": "1",
-      "i16": "0",
-      "nickname": "washed_goat",
-      "playerId": "b1373334-5842-4fa6-90b8-da0479ee94c0",
-      "i40": "2",
-      "i20": "1366",
-      "i6": "13",
-      "i7": "6",
-      "i8": "17",
-      "i9": "2",
-      "c10": "62.1",
-      "c2": "0.76",
-      "c3": "0.59",
-      "c4": "31",
-      "c1": "1",
-      "i19": "0",
-      "teamId": "b1373334-5842-4fa6-90b8-da0479ee94c0",
-      "i3": "1",
-      "i4": "8",
-      "i5": "team_washed_goat",
-      "premade": false,
-      "c5": "9",
-      "bestOf": "1",
-      "competitionId": "f4148ddd-bce8-41b8-9131-ee83afcdd6dd",
-      "date": 1770838648000,
-      "game": "cs2",
-      "gameMode": "5v5",
-      "i0": "EU",
-      "i1": "de_dust2",
-      "i12": "22",
-      "i18": "13 / 9",
-      "i2": "7a3070b6-5b09-45e2-a55b-8daedefc315a",
-      "matchId": "1-efaceb26-ac08-476f-a5da-7e10af3fba7e",
-      "matchRound": "1",
-      "played": "1",
-      "status": "APPLIED",
-      "elo": "2607",
-      "elo_delta": "-30"
-    },
-    {
-      "_id": {
         "matchId": "698becc7ede34ea3e34e6745",
         "playerId": "b1373334-5842-4fa6-90b8-da0479ee94c0"
       },
@@ -89902,6 +89853,10 @@
     },
     {
       "date": 1775692588000,
+      "elo": "2664"
+    },
+    {
+      "date": 1775698423000,
       "elo": "2664"
     }
   ]
