@@ -78,10 +78,23 @@
       </div>
     </section>
 
+    <section class="shell analysis-period-bar" aria-label="Analysezeitraum auswählen">
+      <div>
+        <span>Analysezeitraum</span>
+        <strong id="analysis-period-copy">Letzte 30 Matches</strong>
+        <small>Gilt für Awards, Spieler-Details, ELO-Vergleich und Team-Synergien.</small>
+      </div>
+      <div class="analysis-period-control" role="group" aria-label="Anzahl der zu analysierenden Matches">
+        <button class="analysis-period active" type="button" data-analysis-period="30" aria-pressed="true">30</button>
+        <button class="analysis-period" type="button" data-analysis-period="60" aria-pressed="false">60</button>
+        <button class="analysis-period" type="button" data-analysis-period="100" aria-pressed="false">100</button>
+      </div>
+    </section>
+
     <section class="shell awards-section" aria-labelledby="awards-title">
       <div class="compact-section-title">
         <span aria-hidden="true">🏆</span>
-        <h2 id="awards-title">Awards <span>(Last 30 Matches)</span></h2>
+        <h2 id="awards-title">Awards <span>(letzte 30 Matches)</span></h2>
       </div>
       <div id="awards-grid"><!-- INSERT_AWARDS_SECTION --></div>
     </section>
@@ -164,7 +177,7 @@
         <div class="chart-panel">
           <div class="chart-meta">
             <span>Performance Timeline</span>
-            <span>Letzte 30 Matches</span>
+            <span id="comparison-period-label">Letzte 30 Matches</span>
           </div>
           <div class="chart-wrap">
             <canvas id="comparison-chart" aria-label="Vergleich der ELO-Verläufe" role="img"></canvas>
@@ -179,7 +192,7 @@
               <p class="kicker">Team Chemistry</p>
               <h3 id="synergy-title">Team-Synergien</h3>
             </div>
-            <p>Gemeinsame Matches und Winrate auf Basis der letzten 30 Matches je Spieler.</p>
+            <p id="synergy-period-label">Gemeinsame Matches und Winrate auf Basis der letzten 30 Matches je Spieler.</p>
           </div>
           <div class="synergy-grid" id="synergy-grid"></div>
         </section>

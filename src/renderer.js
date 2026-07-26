@@ -51,6 +51,19 @@ class Renderer {
     template = template.replace("<!-- INSERT_AWARDS_SECTION -->", awardsHtml);
 
     // Inject comparison chart data
+    const serializePeriod = (period, periodStats) => ({
+      requestedMatches: Number(period) || 30,
+      recent: periodStats?.recent || {},
+      last5: periodStats?.last5 || [],
+      streak: periodStats?.streak || { type: "none", count: 0 },
+      mapPerformance: periodStats?.mapPerformance || [],
+      matchHistory: periodStats?.matchHistory || [],
+      personalBests: periodStats?.personalBests || {},
+      dataQuality: periodStats?.dataQuality || {},
+      insights: periodStats?.insights || [],
+      teammates: periodStats?.teammates || [],
+      history: (periodStats?.eloHistory || []).slice(-Number(period) || -30)
+    });
     const comparisonData = players.map(p => ({
       id: p.playerId,
       nickname: p.nickname,
@@ -66,7 +79,11 @@ class Renderer {
       dataQuality: p.stats.dataQuality || {},
       insights: p.stats.insights || [],
       teammates: p.stats.teammates || [],
-      history: (p.stats.eloHistory || []).slice(-100)
+      history: (p.stats.eloHistory || []).slice(-100),
+      periods: Object.fromEntries(["30", "60", "100"].map(period => [
+        period,
+        serializePeriod(period, p.periodStats?.[period] || p.stats)
+      ]))
     }));
     const trackedIds = new Set(players.map(player => player.playerId));
     const synergies = [];
@@ -244,28 +261,28 @@ class Renderer {
         <th class="py-2 px-3 text-center text-[10px] uppercase text-white/30 font-bold tracking-wider">Win%</th>
         <th class="py-2 px-3 text-center text-[10px] uppercase text-white/30 font-bold tracking-wider">K/D</th>
       </tr></thead>
-      <tbody>${mapRows}</tbody>
+      <tbody data-map-rows>${mapRows || '<tr><td colspan="4" class="py-4 px-3 text-center text-xs text-white/40">Keine Map-Daten verfügbar.</td></tr>'}</tbody>
     </table>
   </div>
 </div>` : "";
 
     const statBlock = `
 <div class="mb-4">
-  <div class="font-bold text-neon-blue mb-3 flex items-center gap-2 text-xs uppercase tracking-widest">
+  <div class="performance-period-label font-bold text-neon-blue mb-3 flex items-center gap-2 text-xs uppercase tracking-widest">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>
-    Performance (Last 30)
+    <span>Performance (letzte 30)</span>
   </div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#0a0a14] border border-white/5 p-4 rounded-xl shadow-inner">
-    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">K/D</span> <span class="font-mono text-xl font-bold ${parseFloat(recent.kd) >= 1 ? 'text-green-400' : 'text-red-400'}">${recent.kd}</span></div>
-    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">K/R</span> <span class="font-mono text-xl font-bold text-white">${recent.kr}</span></div>
-    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">Avg Kills</span> <span class="font-mono text-xl font-bold text-white">${recent.matches > 0 ? Math.round(recent.kills / recent.matches) : 0}</span></div>
-    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">HS %</span> <span class="font-mono text-xl font-bold text-white">${recent.hsPercent}</span></div>
+    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">K/D</span> <span data-stat="kd" class="font-mono text-xl font-bold ${parseFloat(recent.kd) >= 1 ? 'text-green-400' : 'text-red-400'}">${recent.kd}</span></div>
+    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">K/R</span> <span data-stat="kr" class="font-mono text-xl font-bold text-white">${recent.kr}</span></div>
+    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">Avg Kills</span> <span data-stat="avg-kills" class="font-mono text-xl font-bold text-white">${recent.matches > 0 ? Math.round(recent.kills / recent.matches) : 0}</span></div>
+    <div><span class="text-white/30 block text-[10px] uppercase font-bold tracking-wider mb-1">HS %</span> <span data-stat="hs" class="font-mono text-xl font-bold text-white">${recent.hsPercent}</span></div>
 
     <div class="col-span-2 md:col-span-4 border-t border-white/5 pt-3 mt-1 flex flex-wrap gap-6 text-xs font-mono text-white/50">
-        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div> K: <b class="text-white">${recent.kills}</b></span>
-        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div> A: <b class="text-white">${recent.assists}</b></span>
-        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div> D: <b class="text-white">${recent.deaths}</b></span>
-        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div> ADR: <b class="text-white text-glow-orange">${recent.adr}</b></span>
+        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div> K: <b data-stat="kills" class="text-white">${recent.kills}</b></span>
+        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div> A: <b data-stat="assists" class="text-white">${recent.assists}</b></span>
+        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div> D: <b data-stat="deaths" class="text-white">${recent.deaths}</b></span>
+        <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div> ADR: <b data-stat="adr" class="text-white text-glow-orange">${recent.adr}</b></span>
     </div>
   </div>
   
@@ -298,7 +315,7 @@ class Renderer {
     const topMatesBlock = `
 <div class="mb-4">
   <div class="detail-heading detail-mates font-bold text-white/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('users', 'heading-svg')}<span>Most played with</span></div>
-  <ul class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
+  <ul data-mate-list="played" class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
     ${matesList(topMates, 'count', 'G')}
   </ul>
 </div>`;
@@ -306,7 +323,7 @@ class Renderer {
     const bestMatesBlock = `
 <div class="mb-4">
   <div class="detail-heading detail-wins font-bold text-green-400/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('trophy', 'heading-svg')}<span>Most wins with</span></div>
-  <ul class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
+  <ul data-mate-list="wins" class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
     ${matesList(bestMates, 'wins', 'W')}
   </ul>
 </div>`;
@@ -314,7 +331,7 @@ class Renderer {
     const worstMatesBlock = `
 <div class="mb-4">
   <div class="detail-heading detail-losses font-bold text-red-400/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('skull', 'heading-svg')}<span>Most losses with</span></div>
-  <ul class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
+  <ul data-mate-list="losses" class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
      ${matesList(worstMates, 'losses', 'L', true)}
   </ul>
 </div>`;
@@ -324,7 +341,7 @@ class Renderer {
     const chartBlock = `
 <div class="mt-6 bg-[#0a0a14] border border-white/5 p-4 rounded-xl shadow-inner relative overflow-hidden group/chart">
     <div class="detail-heading detail-trend font-bold text-white/60 mb-4 text-[10px] uppercase tracking-widest relative z-10">
-        ${iconSvg('trend', 'heading-svg')}<span>ELO-Trend · letzte 30 Matches</span>
+        ${iconSvg('trend', 'heading-svg')}<span class="trend-period-label">ELO-Trend · letzte 30 Matches</span>
     </div>
     <div class="h-48 w-full relative z-10">
         <canvas id="chart-${playerId}" class="elo-chart" data-history='${historyJson}'></canvas>
@@ -345,15 +362,15 @@ class Renderer {
   <div class="player-analytics-head">
     <div>
       <span class="data-status status-${escapeHtml(dataQuality.status)}"><i></i>${escapeHtml(dataQuality.label)}</span>
-      <small>${Number(dataQuality.matchCoverage) || 0}% Match-Abdeckung · ${Number(dataQuality.eloSamples) || 0} ELO-Werte</small>
+      <small class="analysis-coverage">${Number(dataQuality.analyzedMatches) || Number(recent.matches) || 0} von 30 Matches ausgewertet · ${Number(dataQuality.matchCoverage) || 0}% Abdeckung</small>
     </div>
   </div>
   <div class="personal-bests" aria-label="Persönliche Bestwerte">
-    <article><span>Peak ELO</span><strong>${Number(personalBests.peakElo) || peakElo}</strong><small>Aus ${Number(dataQuality.eloSamples) || 0} ELO-Werten</small></article>
-    <article><span>Längste Serie</span><strong>${Number(personalBests.longestWinStreak) || 0}W</strong><small>Letzte 30 Matches</small></article>
-    <article><span>Beste Map</span><strong>${escapeHtml(bestMap?.map || "—")}</strong><small>${bestMap ? `${bestMap.winrate}% WR · letzte 30 Matches` : "Letzte 30 Matches"}</small></article>
-    <article><span>Beste 30er-Phase</span><strong>${Number(personalBests.bestThirtyGain) > 0 ? "+" : ""}${Number(personalBests.bestThirtyGain) || 0}</strong><small>ELO · aus ${Number(dataQuality.eloSamples) || 0} Werten</small></article>
-    <article data-form-card><span>Letzte 5 Matches</span><strong>${last5.length ? `${recentFormWins}/${last5.length}` : "—"}</strong><small>${last5.length ? `${recentFormPercent}% Siege` : "Keine Daten"}</small></article>
+    <article data-best="peak"><span>Peak ELO</span><strong>${Number(personalBests.peakElo) || peakElo}</strong><small>Aus ${Number(dataQuality.eloSamples) || 0} ELO-Werten</small></article>
+    <article data-best="streak"><span>Längste Serie</span><strong>${Number(personalBests.longestWinStreak) || 0}W</strong><small>Letzte 30 Matches</small></article>
+    <article data-best="map"><span>Beste Map</span><strong>${escapeHtml(bestMap?.map || "—")}</strong><small>${bestMap ? `${bestMap.winrate}% WR · letzte 30 Matches` : "Letzte 30 Matches"}</small></article>
+    <article data-best="gain"><span>Beste 30er-Phase</span><strong>${Number(personalBests.bestThirtyGain) > 0 ? "+" : ""}${Number(personalBests.bestThirtyGain) || 0}</strong><small>ELO · aus ${Number(dataQuality.eloSamples) || 0} Werten</small></article>
+    <article data-best="form" data-form-card><span>Letzte 5 Matches</span><strong>${last5.length ? `${recentFormWins}/${last5.length}` : "—"}</strong><small>${last5.length ? `${recentFormPercent}% Siege` : "Keine Daten"}</small></article>
   </div>
   <div class="insight-grid">${insightHtml}</div>
 </div>`;

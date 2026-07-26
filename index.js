@@ -14,7 +14,8 @@ const NOTIFICATION_STATE_FILE = path.join(DATA_DIR, "discord_state.json");
 const HISTORY_CACHE_FILE = path.join(DATA_DIR, "history-cache.json");
 const TEMPLATE_FILE = "index.template.html";
 const OUTPUT_FILE = "index.html";
-const MAX_MATCHES = 30;
+const ANALYSIS_PERIODS = [30, 60, 100];
+const MAX_MATCHES = Math.max(...ANALYSIS_PERIODS);
 
 const RANGE_FILES = {
     daily: "elo-daily.json",
@@ -64,7 +65,7 @@ async function processPlayer(playerId, historyCache) {
     try {
         const [profile, history, playerStats, freshEloHistory] = await Promise.all([
             api.getPlayer(playerId),
-            api.getPlayerHistory(playerId, 30),
+            api.getPlayerHistory(playerId, MAX_MATCHES),
             api.getPlayerStats(playerId),
             api.getEloHistory(playerId)
         ]);
@@ -124,10 +125,10 @@ async function processPlayer(playerId, historyCache) {
         if (eloHistoryData.length > 300) eloHistoryData = eloHistoryData.slice(-300);
         historyCache[playerId] = eloHistoryData;
 
-        // Fetch match stats for all matches in history
+        // Fetch immutable match stats with a concurrency limit and persistent cache.
         const matchStatsMap = {};
-        for (const item of history.items) {
-        let ms = await api.getMatchStats(item.match_id);
+        await Promise.all(history.items.map(async item => {
+            let ms = await api.getMatchStats(item.match_id);
             if (!ms) {
                 // Fallback: Create placeholder so stats.js doesn't skip the match entirely (for Teammates logic)
                 ms = { __mapName: "Unknown" };
@@ -159,10 +160,20 @@ async function processPlayer(playerId, historyCache) {
                 ms.__mapName = normalizeMapName(ms.__mapName);
             }
             matchStatsMap[item.match_id] = ms;
-        }
+        }));
 
-        // Calculate stats (now includes streak, last5, mapPerformance)
-        const calculatedStats = stats.calculatePlayerStats(playerId, history.items, matchStatsMap, eloHistoryData);
+        const sortedEloHistory = [...eloHistoryData].sort((a, b) =>
+            Number(a.date ?? a.created_at ?? a.updated_at) - Number(b.date ?? b.created_at ?? b.updated_at)
+        );
+        const periodStats = Object.fromEntries(ANALYSIS_PERIODS.map(period => {
+            const periodHistory = history.items.slice(0, period);
+            const periodEloHistory = sortedEloHistory.slice(-period);
+            return [
+                String(period),
+                stats.calculatePlayerStats(playerId, periodHistory, matchStatsMap, periodEloHistory, period)
+            ];
+        }));
+        const calculatedStats = periodStats["30"];
 
         const lastTs = history.items[0]?.finished_at;
         const lastMatch = lastTs ? DateTime.fromSeconds(lastTs).setZone("Europe/Berlin").toFormat("yyyy-MM-dd HH:mm") : "—";
@@ -182,7 +193,8 @@ async function processPlayer(playerId, historyCache) {
             lastMatchTs,
             latestMatchId: history.items[0]?.match_id || null,
             latestMatchResult: calculatedStats.last5[0] || null,
-            stats: calculatedStats
+            stats: calculatedStats,
+            periodStats
         };
 
     } catch (e) {
@@ -287,6 +299,7 @@ function calculateAwards(results) {
         const id = lines[i];
         console.log(`  ⏳ Processing ${i + 1}/${lines.length}: ${id.substring(0, 8)}...`);
         const p = await processPlayer(id, historyCache);
+        api.saveMatchCache();
         if (p) {
             results.push(p);
 

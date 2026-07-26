@@ -240,6 +240,26 @@ img { max-width: 100%; }
 .overview-tracked { --overview-accent: var(--blue); --overview-tint: rgba(105,169,255,.08); --overview-glow: rgba(105,169,255,.11); }
 .overview-tracked .live-dot { width: 6px; height: 6px; }
 
+.analysis-period-bar {
+  margin-top: 22px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(100deg, rgba(255,92,26,.055), rgba(255,255,255,.014));
+}
+.analysis-period-bar > div:first-child { min-width: 0; display: grid; grid-template-columns: auto auto; align-items: baseline; gap: 3px 10px; }
+.analysis-period-bar span { color: var(--orange-soft); font: 800 9px var(--display); letter-spacing: .12em; text-transform: uppercase; }
+.analysis-period-bar strong { color: var(--text); font: 800 14px var(--display); }
+.analysis-period-bar small { grid-column: 1 / -1; color: var(--muted); font-size: 10px; }
+.analysis-period-control { flex: 0 0 auto; display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: rgba(0,0,0,.25); }
+.analysis-period {
+  min-width: 52px; height: 34px; padding: 0 12px; border: 0; border-radius: 7px; cursor: pointer;
+  color: var(--muted); background: transparent; font: 800 11px var(--display); transition: color .2s, background .2s, box-shadow .2s;
+}
+.analysis-period:hover { color: var(--text); }
+.analysis-period.active {
+  color: #fff; background: linear-gradient(135deg, rgba(255,92,26,.95), rgba(255,106,43,.72));
+  box-shadow: 0 6px 20px rgba(255,92,26,.2);
+}
+
 .compact-section-title {
   margin-bottom: 18px; display: flex; align-items: center; gap: 10px;
   color: var(--muted-2); text-transform: uppercase;
@@ -536,6 +556,9 @@ img { max-width: 100%; }
   .button { width: 100%; }
   .leader-spotlight { padding: 23px; }
   .overview-section { padding-top: 34px; }
+  .analysis-period-bar { align-items: stretch; flex-direction: column; }
+  .analysis-period-control { width: 100%; }
+  .analysis-period { flex: 1; }
   .awards-section { padding-top: 44px; }
   .leaderboard-section { padding-top: 34px; }
   .section-heading { align-items: start; flex-direction: column; gap: 12px; }

@@ -3,6 +3,7 @@
 
   const state = {
     range: "daily",
+    analysisPeriod: 30,
     sort: { key: "elo", direction: "desc" },
     selectedPlayers: new Set(),
     comparisonChart: null,
@@ -19,6 +20,7 @@
   const filterButtons = [...document.querySelectorAll(".time-filter")];
   const sortButtons = [...document.querySelectorAll("[data-sort]")];
   const formSort = document.getElementById("formSort");
+  const analysisPeriodButtons = [...document.querySelectorAll("[data-analysis-period]")];
 
   if (!tableBody || !searchInput) return;
 
@@ -69,7 +71,8 @@
       const heading = headings.find(item => content.includes(item.match));
       if (!heading) return;
       element.classList.add("detail-heading", heading.className);
-      element.innerHTML = `${iconMarkup(heading.icon, "heading-svg")}<span>${heading.label}</span>`;
+      const labelClass = heading.className === "detail-trend" ? ' class="trend-period-label"' : "";
+      element.innerHTML = `${iconMarkup(heading.icon, "heading-svg")}<span${labelClass}>${heading.label}</span>`;
     });
   };
 
@@ -371,14 +374,15 @@
 
   const renderDetailCharts = async details => {
     if (!chartAvailable() || !details) return;
+    const period = number(details.dataset.analysisPeriod, state.analysisPeriod);
 
     const lineCanvas = details.querySelector(".elo-chart");
     if (lineCanvas && !state.detailCharts.has(lineCanvas)) {
       const history = toMatchSeries(await resolveHistory(
         details.dataset.playerId,
         parseJSONAttribute(lineCanvas, "history"),
-        30
-      ));
+        period
+      ), period);
       if (history.length >= 2) {
         lineCanvas.hidden = false;
         lineCanvas.dataset.pointCount = String(history.length);
@@ -398,7 +402,7 @@
               cubicInterpolationMode: "monotone"
             }]
           },
-          options: detailChartOptions()
+          options: detailChartOptions(period)
         }));
       } else {
         showDetailFallback(lineCanvas, "Noch nicht genügend ELO-Verlaufsdaten vorhanden.");
@@ -446,7 +450,7 @@
     }
   };
 
-  const detailChartOptions = () => ({
+  const detailChartOptions = (period = state.analysisPeriod) => ({
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
@@ -461,7 +465,7 @@
     },
     onClick: openChartMatch,
     scales: {
-      x: { type: "linear", min: 1, max: 30, display: false },
+      x: { type: "linear", min: 1, max: period, display: false },
       y: { grid: { color: "rgba(255,255,255,.055)" }, ticks: { maxTicksLimit: 5, font: { size: 9 } } }
     }
   });
@@ -504,6 +508,11 @@
 
   const playerData = playerId => (Array.isArray(window.COMPARISON_DATA) ? window.COMPARISON_DATA : [])
     .find(player => player.id === playerId);
+
+  const periodData = (player, period = state.analysisPeriod) => {
+    if (!player) return {};
+    return player.periods?.[String(period)] || player.periods?.["30"] || player;
+  };
 
   const calculateBestThirty = history => {
     const points = normalizeHistory(history, 100);
@@ -601,6 +610,182 @@
     analytics.append(card);
   };
 
+  const updateMapRows = (details, maps) => {
+    const body = details.querySelector("[data-map-rows]");
+    if (!body) return;
+    body.replaceChildren();
+    const validMaps = Array.isArray(maps) ? maps.filter(map => map.map !== "Unknown") : [];
+    if (!validMaps.length) {
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = 4;
+      cell.className = "py-4 px-3 text-center text-xs text-white/40";
+      cell.textContent = "Keine Map-Daten für diesen Zeitraum verfügbar.";
+      row.append(cell);
+      body.append(row);
+      return;
+    }
+    validMaps.forEach(map => {
+      const row = document.createElement("tr");
+      row.className = "border-b border-white/5 last:border-0";
+      const values = [map.map, map.matches, `${map.winrate}%`, map.kd];
+      values.forEach((value, index) => {
+        const cell = document.createElement("td");
+        cell.className = index
+          ? "py-2 px-3 text-center text-xs font-mono text-white/50"
+          : "py-2 px-3 text-white/80 text-xs font-medium";
+        if (index === 2) cell.className += number(map.winrate) >= 50 ? " text-green-400" : " text-red-400";
+        if (index === 3) cell.className += number(map.kd) >= 1 ? " text-green-400" : " text-red-400";
+        cell.textContent = String(value ?? "—");
+        row.append(cell);
+      });
+      body.append(row);
+    });
+  };
+
+  const updateMateLists = (details, teammates) => {
+    const lists = {
+      played: [...(teammates || [])].sort((a, b) => number(b.count) - number(a.count)),
+      wins: [...(teammates || [])].sort((a, b) => number(b.wins) - number(a.wins)),
+      losses: [...(teammates || [])].sort((a, b) => number(b.losses) - number(a.losses))
+    };
+    Object.entries(lists).forEach(([kind, mates]) => {
+      const list = details.querySelector(`[data-mate-list="${kind}"]`);
+      if (!list) return;
+      list.replaceChildren();
+      mates.slice(0, 5).forEach(mate => {
+        const item = document.createElement("li");
+        item.className = "flex justify-between items-center py-2 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 rounded transition-colors";
+        const link = document.createElement("a");
+        link.className = "nickname-link text-white/70 font-medium hover:text-neon-blue transition-colors text-xs";
+        link.textContent = mate.nickname || "—";
+        if (/^https:\/\//i.test(mate.url || "")) {
+          link.href = mate.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
+        const value = kind === "played" ? number(mate.count) : number(mate[kind]);
+        const suffix = kind === "played" ? "G" : kind === "wins" ? "W" : "L";
+        const rate = kind === "losses" ? 100 - number(mate.winratePct) : number(mate.winratePct);
+        const meta = document.createElement("span");
+        meta.className = "text-[10px] text-white/40 font-mono";
+        meta.textContent = `${value} ${suffix} · ${rate}%`;
+        item.append(link, meta);
+        list.append(item);
+      });
+      if (!list.children.length) {
+        const empty = document.createElement("li");
+        empty.className = "py-3 px-2 text-xs text-white/40";
+        empty.textContent = "Keine Daten für diesen Zeitraum.";
+        list.append(empty);
+      }
+    });
+  };
+
+  const updatePlayerPeriod = row => {
+    const details = pairedDetailRow(row);
+    const player = playerData(row.dataset.playerId);
+    if (!details || !player) return;
+    const period = state.analysisPeriod;
+    const data = periodData(player, period);
+    const recent = data.recent || {};
+    const quality = data.dataQuality || {};
+    const personal = data.personalBests || {};
+    const last5 = Array.isArray(data.last5) ? data.last5 : [];
+    const wins = last5.filter(result => result === "W").length;
+    const available = number(quality.historyMatches, number(recent.matches));
+    const analyzed = number(quality.analyzedMatches, number(recent.matches));
+    const eloSamples = number(quality.eloSamples, (data.history || []).length);
+
+    details.dataset.analysisPeriod = String(period);
+    const coverage = details.querySelector(".analysis-coverage");
+    if (coverage) {
+      coverage.textContent = available < period
+        ? `${available} Matches verfügbar · ${analyzed} ausgewertet · Ziel ${period}`
+        : `${analyzed} von ${period} Matches ausgewertet · ${number(quality.matchCoverage)}% Abdeckung`;
+    }
+
+    const updateBest = (name, value, scope) => {
+      const card = details.querySelector(`[data-best="${name}"]`);
+      if (!card) return;
+      const strong = card.querySelector("strong");
+      const small = card.querySelector("small");
+      if (strong) strong.textContent = value;
+      if (small) small.textContent = scope;
+    };
+    const bestMap = personal.bestMap;
+    const gain = number(personal.bestThirtyGain);
+    updateBest("peak", String(number(personal.peakElo, number(row.dataset.elo))), `Peak in den letzten ${period} Matches · ${eloSamples} ELO-Werte`);
+    updateBest("streak", `${number(personal.longestWinStreak)}W`, `Letzte ${period} Matches`);
+    updateBest("map", bestMap?.map || "—", bestMap ? `${bestMap.winrate}% WR · letzte ${period} Matches` : `Letzte ${period} Matches`);
+    updateBest("gain", `${gain > 0 ? "+" : ""}${gain}`, `Beste zusammenhängende 30er-Phase im ${period}er-Fenster`);
+    updateBest("form", last5.length ? `${wins}/${last5.length}` : "—", last5.length ? `${Math.round(wins / last5.length * 100)}% Siege` : "Keine Daten");
+
+    const statValues = {
+      kd: recent.kd ?? "0.00",
+      kr: recent.kr ?? "0.00",
+      "avg-kills": number(recent.matches) ? Math.round(number(recent.kills) / number(recent.matches)) : 0,
+      hs: recent.hsPercent ?? "0%",
+      kills: number(recent.kills),
+      assists: number(recent.assists),
+      deaths: number(recent.deaths),
+      adr: recent.adr ?? "0.0"
+    };
+    Object.entries(statValues).forEach(([key, value]) => {
+      const target = details.querySelector(`[data-stat="${key}"]`);
+      if (target) target.textContent = String(value);
+    });
+    const performanceLabel = details.querySelector(".performance-period-label");
+    const performanceCopy = performanceLabel?.querySelector("span");
+    if (performanceCopy) performanceCopy.textContent = `Performance (letzte ${period})`;
+
+    updateMapRows(details, data.mapPerformance);
+    const radarCanvas = details.querySelector(".radar-chart");
+    if (radarCanvas) {
+      const maps = (data.mapPerformance || []).filter(map => map.map !== "Unknown");
+      radarCanvas.dataset.radar = JSON.stringify({ labels: maps.map(map => map.map), data: maps.map(map => map.winrate) });
+    }
+    const lineCanvas = details.querySelector(".elo-chart");
+    if (lineCanvas) lineCanvas.dataset.history = JSON.stringify(data.history || []);
+    const trendLabel = details.querySelector(".trend-period-label");
+    if (trendLabel) trendLabel.textContent = `ELO-Trend · letzte ${period} Matches`;
+
+    const insightGrid = details.querySelector(".insight-grid");
+    if (insightGrid) {
+      insightGrid.replaceChildren();
+      (data.insights || []).slice(0, 4).forEach(insight => {
+        const article = document.createElement("article");
+        article.className = `player-insight insight-${text(insight.type)}`;
+        const icon = document.createElement("span");
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = insight.icon || "•";
+        const copy = document.createElement("div");
+        const title = document.createElement("strong");
+        const detail = document.createElement("small");
+        title.textContent = insight.title || "Hinweis";
+        detail.textContent = insight.text || "";
+        copy.append(title, detail);
+        article.append(icon, copy);
+        insightGrid.append(article);
+      });
+      if (!insightGrid.children.length) {
+        const empty = document.createElement("p");
+        empty.className = "analytics-empty";
+        empty.textContent = `Keine belastbare Auffälligkeit in den letzten ${period} Matches.`;
+        insightGrid.append(empty);
+      }
+    }
+    updateMateLists(details, data.teammates);
+
+    details.querySelectorAll("canvas").forEach(canvas => {
+      state.detailCharts.get(canvas)?.destroy();
+      state.detailCharts.delete(canvas);
+      canvas.hidden = false;
+      canvas.parentElement?.querySelector(".detail-chart-fallback")?.remove();
+    });
+    if (!details.classList.contains("hidden")) requestAnimationFrame(() => void renderDetailCharts(details));
+  };
+
   const setupRows = () => {
     document.querySelectorAll(".last-match-cell").forEach(cell => {
       const absolute = cell.textContent.trim();
@@ -621,6 +806,7 @@
       normalizeStreakDisplay(row);
       enhancePlayerAnalytics(row);
       syncFormCard(row);
+      updatePlayerPeriod(row);
       row.tabIndex = 0;
       row.setAttribute("role", "button");
       row.setAttribute("aria-expanded", "false");
@@ -723,13 +909,69 @@
     });
   };
 
+  const renderPeriodAwards = () => {
+    const players = Array.isArray(window.COMPARISON_DATA) ? window.COMPARISON_DATA : [];
+    const candidates = players.map(player => ({ player, data: periodData(player) }));
+    const best = (selector, fallback = 0) => candidates.reduce((winner, candidate) =>
+      selector(candidate.data) > selector(winner.data) ? candidate : winner,
+    candidates[0] || { player: { nickname: "—" }, data: {} });
+    const lowest = candidates
+      .filter(candidate => number(candidate.data.recent?.matches) > 0)
+      .reduce((winner, candidate) =>
+        number(candidate.data.recent?.deaths, Infinity) < number(winner.data?.recent?.deaths, Infinity) ? candidate : winner,
+      null);
+    const awardValues = [
+      [best(data => number(data.recent?.kd)), data => number(data.recent?.kd).toFixed(2)],
+      [best(data => number(data.recent?.hsPercent)), data => `${number(data.recent?.hsPercent)}%`],
+      [best(data => number(data.recent?.adr)), data => number(data.recent?.adr).toFixed(1)],
+      [best(data => number(data.recent?.winratePct)), data => `${number(data.recent?.winratePct)}%`],
+      [best(data => data.streak?.type === "win" ? number(data.streak.count) : 0), data => `${number(data.streak?.count)}W`],
+      [lowest || { player: { nickname: "—" }, data: {} }, data => `${number(data.recent?.deaths)} Deaths`]
+    ];
+    document.querySelectorAll("#awards-grid .award-card").forEach((card, index) => {
+      const [candidate, formatter] = awardValues[index] || [];
+      if (!candidate) return;
+      const lines = card.querySelectorAll(".award-copy p");
+      if (lines[1]) lines[1].textContent = candidate.player.nickname || "—";
+      if (lines[2]) lines[2].textContent = formatter(candidate.data);
+    });
+  };
+
+  const setupAnalysisPeriod = () => {
+    analysisPeriodButtons.forEach(button => button.addEventListener("click", () => {
+      const period = number(button.dataset.analysisPeriod, 30);
+      if (![30, 60, 100].includes(period) || period === state.analysisPeriod) return;
+      state.analysisPeriod = period;
+      analysisPeriodButtons.forEach(item => {
+        const active = number(item.dataset.analysisPeriod) === period;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-pressed", String(active));
+      });
+      const copy = document.getElementById("analysis-period-copy");
+      if (copy) copy.textContent = `Letzte ${period} Matches`;
+      const awardLabel = document.querySelector("#awards-title span");
+      if (awardLabel) awardLabel.textContent = `(letzte ${period} Matches)`;
+      const comparisonLabel = document.getElementById("comparison-period-label");
+      if (comparisonLabel) comparisonLabel.textContent = `Letzte ${period} Matches`;
+      const synergyLabel = document.getElementById("synergy-period-label");
+      if (synergyLabel) synergyLabel.textContent = `Gemeinsame Matches und Winrate auf Basis der letzten ${period} Matches je Spieler.`;
+      playerRows().forEach(updatePlayerPeriod);
+      renderPeriodAwards();
+      renderSynergies();
+      void renderComparison();
+    }));
+  };
+
   const comparisonValue = (player, key) => {
     const row = playerRows().find(candidate => candidate.dataset.playerId === player.id);
+    const data = periodData(player);
     if (key === "elo") return number(player.elo, number(row?.dataset.elo));
-    if (key === "winrate") return number(player.winrate, number(row?.dataset.winrate));
-    if (key === "kd") return number(player.recent?.kd, number(row?.dataset.kd));
-    if (key === "adr") return number(player.recent?.adr, number(row?.dataset.adr));
-    if (key === "form") return number(row?.dataset.form, (player.last5 || []).filter(result => result === "W").length * 20);
+    if (key === "winrate") return number(data.recent?.winratePct, number(row?.dataset.winrate));
+    if (key === "kd") return number(data.recent?.kd, number(row?.dataset.kd));
+    if (key === "adr") return number(data.recent?.adr, number(row?.dataset.adr));
+    if (key === "form") return (data.last5 || []).length
+      ? (data.last5 || []).filter(result => result === "W").length / data.last5.length * 100
+      : 0;
     return 0;
   };
 
@@ -774,7 +1016,9 @@
     const canvas = document.getElementById("comparison-chart");
     const fallback = document.getElementById("chartFallback");
     const data = Array.isArray(window.COMPARISON_DATA) ? window.COMPARISON_DATA : [];
-    const selectedPlayers = data.filter(player => state.selectedPlayers.has(player.id));
+    const selectedPlayers = data
+      .filter(player => state.selectedPlayers.has(player.id))
+      .map(player => ({ ...player, ...periodData(player) }));
     renderComparisonMetrics(selectedPlayers);
     const renderId = ++state.comparisonRenderId;
     state.comparisonChart?.destroy();
@@ -801,7 +1045,7 @@
 
     const selected = (await Promise.all(selectedPlayers.map(async player => ({
       ...player,
-      points: toMatchSeries(await resolveHistory(player.id, player.history, 30))
+      points: toMatchSeries(await resolveHistory(player.id, player.history, state.analysisPeriod), state.analysisPeriod)
     })))).filter(player => player.points.length >= 2);
     if (renderId !== state.comparisonRenderId) return;
 
@@ -848,9 +1092,9 @@
           x: {
             type: "linear",
             min: 1,
-            max: 30,
+            max: state.analysisPeriod,
             grid: { color: "rgba(255,255,255,.035)" },
-            title: { display: true, text: "Letzte 30 Matches →", color: "#606a78", font: { size: 9 } },
+            title: { display: true, text: `Letzte ${state.analysisPeriod} Matches →`, color: "#606a78", font: { size: 9 } },
             ticks: { maxTicksLimit: 10, precision: 0, font: { size: 9 } }
           },
           y: { grid: { color: "rgba(255,255,255,.055)" }, ticks: { maxTicksLimit: 6, font: { size: 9 } } }
@@ -862,11 +1106,26 @@
   const renderSynergies = () => {
     const container = document.getElementById("synergy-grid");
     if (!container) return;
-    const timeframe = document.querySelector(".synergy-head > p");
-    if (timeframe) timeframe.textContent = "Gemeinsame Matches und Winrate auf Basis der letzten 30 Matches je Spieler.";
-    let synergies = Array.isArray(window.DASHBOARD_ANALYTICS?.synergies)
-      ? window.DASHBOARD_ANALYTICS.synergies
-      : [];
+    const period = state.analysisPeriod;
+    const players = Array.isArray(window.COMPARISON_DATA) ? window.COMPARISON_DATA : [];
+    const tracked = new Map(players.map(player => [player.id, player]));
+    const seenPairs = new Set();
+    let synergies = [];
+    players.forEach(player => {
+      (periodData(player).teammates || []).forEach(mate => {
+        if (!tracked.has(mate.playerId)) return;
+        const key = [player.id, mate.playerId].sort().join(":");
+        if (seenPairs.has(key)) return;
+        seenPairs.add(key);
+        synergies.push({
+          players: [player.nickname, tracked.get(mate.playerId)?.nickname || mate.nickname],
+          matches: number(mate.count),
+          wins: number(mate.wins),
+          winrate: number(mate.winratePct)
+        });
+      });
+    });
+    synergies.sort((a, b) => number(b.matches) - number(a.matches) || number(b.winrate) - number(a.winrate));
     if (!synergies.length) {
       const byName = new Map(playerRows().map(row => [row.dataset.nickname, row]));
       const seen = new Set();
@@ -899,7 +1158,7 @@
         <div><strong></strong><small></small></div>
         <span class="synergy-rate"></span>`;
       article.querySelector("strong").textContent = (synergy.players || []).join(" + ");
-      article.querySelector("small").textContent = `${number(synergy.matches)} gemeinsame Matches · letzte 30 je Spieler`;
+      article.querySelector("small").textContent = `${number(synergy.matches)} gemeinsame Matches · letzte ${period} je Spieler`;
       article.querySelector(".synergy-rate").textContent = `${number(synergy.winrate)}% WR`;
       container.append(article);
     });
@@ -926,8 +1185,10 @@
   setupRows();
   setupFilters();
   setupSorting();
+  setupAnalysisPeriod();
   updateDiffs();
   sortRows();
+  renderPeriodAwards();
   createComparisonChips();
   renderSynergies();
   waitForCharts();

@@ -10,6 +10,8 @@ const template = fs.readFileSync(path.join(root, "index.template.html"), "utf8")
 const generated = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const dashboardScript = fs.readFileSync(path.join(root, "dashboard.js"), "utf8");
 const dashboardCss = fs.readFileSync(path.join(root, "dashboard.css"), "utf8");
+const updaterScript = fs.readFileSync(path.join(root, "index.js"), "utf8");
+const apiScript = fs.readFileSync(path.join(root, "src", "api.js"), "utf8");
 
 for (const marker of [
   "INSERT_ELO_TABLE_HERE",
@@ -46,7 +48,18 @@ assert.match(dashboardScript, /matchAgeHours <= 7 \* 24/);
 assert.match(dashboardScript, /matchAgeHours <= 30 \* 24/);
 assert.match(dashboardCss, /\.data-status\.status-aging/);
 assert.match(dashboardCss, /\.data-status\.status-stale/);
-assert.match(dashboardScript, /max: 30/);
+assert.match(dashboardScript, /max: state\.analysisPeriod/);
+assert.match(dashboardScript, /periodData/);
+assert.match(dashboardScript, /updatePlayerPeriod/);
+assert.match(dashboardScript, /renderPeriodAwards/);
+assert.match(template, /data-analysis-period="30"/);
+assert.match(template, /data-analysis-period="60"/);
+assert.match(template, /data-analysis-period="100"/);
+assert.match(dashboardCss, /\.analysis-period-control/);
+assert.match(updaterScript, /ANALYSIS_PERIODS = \[30, 60, 100\]/);
+assert.match(updaterScript, /periodStats/);
+assert.match(apiScript, /Math\.min\(100/);
+assert.match(apiScript, /from=0&limit=/);
 assert.match(dashboardScript, /matchTooltipCallbacks/);
 assert.match(dashboardScript, /Klicken, um das FACEIT-Match zu öffnen/);
 assert.match(dashboardScript, /renderComparisonMetrics/);
@@ -119,6 +132,7 @@ assert.match(rendered, /data-form="60"/);
 assert.match(rendered, />3\/5</);
 assert.match(rendered, /60% Siege/);
 assert.match(rendered, /Letzte 30 Matches/);
+assert.match(rendered, /"periods":\{"30":/);
 assert.doesNotMatch(rendered, /Ansicht teilen|data-share-player/);
 fs.rmSync(tempDir, { recursive: true, force: true });
 
@@ -168,6 +182,11 @@ assert.equal(analyzedStats.personalBests.peakElo, 1525);
 assert.equal(analyzedStats.personalBests.longestWinStreak, 2);
 assert.equal(analyzedStats.personalBests.bestMap.map, "Mirage");
 assert.equal(analyzedStats.dataQuality.matchCoverage, 100);
+assert.equal(analyzedStats.dataQuality.requestedMatches, 2);
+assert.equal(
+  stats.calculatePlayerStats("player-1", [], {}, [], 60).dataQuality.requestedMatches,
+  60
+);
 assert.ok(Array.isArray(analyzedStats.insights));
 
 const freshnessNow = 2_000_000_000;

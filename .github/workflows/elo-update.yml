@@ -1,6 +1,17 @@
 name: FACEIT ELO Auto Update
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "index.js"
+      - "index.template.html"
+      - "dashboard.js"
+      - "dashboard.css"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
@@ -10,7 +21,7 @@ permissions:
 
 concurrency:
   group: faceit-dashboard-update
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   update:

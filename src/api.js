@@ -114,7 +114,8 @@ class FaceitAPI {
      * @returns {Promise<object>}
      */
     async getPlayerHistory(playerId, limit = 30) {
-        const res = await retryFetch(`${API_BASE}/players/${playerId}/history?game=cs2&limit=${limit}`, { headers: getHeaders() });
+        const safeLimit = Math.max(1, Math.min(100, Number.parseInt(limit) || 30));
+        const res = await retryFetch(`${API_BASE}/players/${playerId}/history?game=cs2&from=0&limit=${safeLimit}`, { headers: getHeaders() });
         return safeJson(res) || { items: [] };
     }
 
@@ -124,8 +125,11 @@ class FaceitAPI {
      * @returns {Promise<object|null>}
      */
     async getMatchDetails(matchId) {
-        const res = await retryFetch(`${API_BASE}/matches/${matchId}`, { headers: getHeaders() });
-        return safeJson(res);
+        const request = async () => {
+            const res = await retryFetch(`${API_BASE}/matches/${matchId}`, { headers: getHeaders() });
+            return safeJson(res);
+        };
+        return this.limit ? this.limit(request) : request();
     }
 
     /**
@@ -200,36 +204,41 @@ class FaceitAPI {
         const cached = cache.data[matchId];
         if (cached) return cached;
 
-        const res = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
-        if (!res) return null;
+        const fetchStats = async () => {
+            const res = await retryFetch(`${API_BASE}/matches/${matchId}/stats`, { headers: getHeaders() });
+            if (!res) return null;
 
-        const data = await safeJson(res);
-        if (!data?.rounds) return null;
+            const data = await safeJson(res);
+            if (!data?.rounds) return null;
 
-        const round = data.rounds[0];
-        const players = round.teams.flatMap(t => t.players);
-        const mapStats = {};
+            const round = data.rounds[0];
+            const players = round.teams.flatMap(t => t.players);
+            const mapStats = {};
 
-        const score = round.round_stats["Score"] || "0 / 0";
-        const [a, b] = score.split(" / ").map(Number);
-        const roundCount = a + b;
-        const mapName = round.round_stats["Map"] || "Unknown";
+            const score = round.round_stats["Score"] || "0 / 0";
+            const [a, b] = score.split(" / ").map(Number);
+            const roundCount = a + b;
+            const mapName = round.round_stats["Map"] || "Unknown";
 
-        for (const p of players) {
-            mapStats[p.player_id] = {
-                ...p.player_stats,
-                __rounds: roundCount,
-                nickname: p.nickname
-            };
-        }
+            for (const p of players) {
+                mapStats[p.player_id] = {
+                    ...p.player_stats,
+                    __rounds: roundCount,
+                    nickname: p.nickname
+                };
+            }
 
-        // Store map name and score at top level so stats.js can access it
-        mapStats.__mapName = mapName;
-        mapStats.__score = score;
+            mapStats.__mapName = mapName;
+            mapStats.__score = score;
+            cache.set(matchId, mapStats);
+            return mapStats;
+        };
 
-        cache.set(matchId, mapStats);
+        return this.limit ? this.limit(fetchStats) : fetchStats();
+    }
+
+    saveMatchCache() {
         cache.save();
-        return mapStats;
     }
 }
 

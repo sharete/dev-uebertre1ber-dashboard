@@ -1,7 +1,5 @@
 const { DateTime } = require("luxon");
 
-/** Maximum number of matches to analyze for stats */
-const MAX_MATCHES = 30;
 const FRESH_HOURS = 7 * 24;
 const AGING_HOURS = 30 * 24;
 
@@ -33,7 +31,7 @@ class StatsCalculator {
      * @param {Array} externalEloHistory - Raw ELO history from FACEIT API
      * @returns {object} Calculated stats: recent, teammates, eloHistory, matchHistory, streak, last5, mapPerformance
      */
-    calculatePlayerStats(playerId, history, matchStatsMap, externalEloHistory) {
+    calculatePlayerStats(playerId, history, matchStatsMap, externalEloHistory, requestedMatches = history?.length || 0) {
         if (!playerId || !history || !matchStatsMap) {
             return this._emptyStats();
         }
@@ -261,7 +259,7 @@ class StatsCalculator {
             bestThirtyGain
         };
 
-        const expectedMatches = Math.min(MAX_MATCHES, history.length);
+        const expectedMatches = history.length;
         const matchCoverage = expectedMatches ? Math.round((count / expectedMatches) * 100) : 0;
         const latestTimestamp = Math.max(
             Number(history[0]?.finished_at) || 0,
@@ -273,6 +271,9 @@ class StatsCalculator {
             label: freshness.label,
             matchCoverage,
             eloSamples: eloHistory.length,
+            requestedMatches: Number(requestedMatches) || history.length,
+            historyMatches: history.length,
+            analyzedMatches: count,
             latestTimestamp,
             ageHours: Number.isFinite(freshness.ageHours) ? Math.round(freshness.ageHours) : null
         };
@@ -285,7 +286,7 @@ class StatsCalculator {
         if (currentElo && personalBests.peakElo - currentElo <= 5) insights.push({ type: "peak", icon: "◆", title: "Peak-Alarm", text: `${currentElo} ELO · persönlicher Bestwert` });
         if (recentGain >= 80) insights.push({ type: "positive", icon: "↑", title: "Starker Trend", text: `+${recentGain} ELO in 10 Matches` });
         if (recentGain <= -80) insights.push({ type: "warning", icon: "↓", title: "Formtief", text: `${recentGain} ELO in 10 Matches` });
-        if (bestMap) insights.push({ type: "map", icon: "⌖", title: "Beste Map · letzte 30 Matches", text: `${bestMap.map} · ${bestMap.winrate}% Winrate` });
+        if (bestMap) insights.push({ type: "map", icon: "⌖", title: `Beste Map · letzte ${Number(requestedMatches) || history.length} Matches`, text: `${bestMap.map} · ${bestMap.winrate}% Winrate` });
 
         // Aggregate Teammate Stats
         const teammates = Object.entries(teammateCounts).map(([id, cnt]) => {

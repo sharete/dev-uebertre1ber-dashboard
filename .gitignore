@@ -7,5 +7,6 @@ node_modules
 data/*.json
 !data/discord_state.json
 !data/history-cache.json
+!data/match_cache.json
 data_backup/
 backup/

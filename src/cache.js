@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const CACHE_FILE = path.join(__dirname, '../data/match_cache.json');
-const MAX_AGE_DAYS = 90;
+// Match statistics are immutable. Keeping them for two years avoids re-fetching
+// the same 100-match analysis window on every scheduled dashboard update.
+const MAX_AGE_DAYS = 730;
 
 class Cache {
   constructor() {
