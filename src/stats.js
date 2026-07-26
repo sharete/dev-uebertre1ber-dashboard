@@ -2,8 +2,29 @@ const { DateTime } = require("luxon");
 
 /** Maximum number of matches to analyze for stats */
 const MAX_MATCHES = 30;
+const FRESH_HOURS = 7 * 24;
+const AGING_HOURS = 30 * 24;
 
 class StatsCalculator {
+    /**
+     * Classifies the age of a player's latest match.
+     * Green: up to 7 days, yellow: over 7 and up to 30 days, red: over 30 days.
+     */
+    getDataFreshness(latestTimestamp, nowSeconds = Date.now() / 1000) {
+        if (!Number(latestTimestamp)) {
+            return { status: "stale", label: "Keine Matchdaten", ageHours: Infinity };
+        }
+
+        const ageHours = Math.max(0, (nowSeconds - Number(latestTimestamp)) / 3600);
+        if (ageHours <= FRESH_HOURS) {
+            return { status: "fresh", label: "Aktuell", ageHours };
+        }
+        if (ageHours <= AGING_HOURS) {
+            return { status: "aging", label: "Über 1 Woche", ageHours };
+        }
+        return { status: "stale", label: "Über 1 Monat", ageHours };
+    }
+
     /**
      * Calculates comprehensive stats for a player from their match history.
      * @param {string} playerId - FACEIT player UUID
@@ -246,14 +267,14 @@ class StatsCalculator {
             Number(history[0]?.finished_at) || 0,
             Number(eloHistory.at(-1)?.date) || 0
         );
-        const ageHours = latestTimestamp ? (Date.now() / 1000 - latestTimestamp) / 3600 : Infinity;
-        const status = matchCoverage < 70 || eloHistory.length < 2 ? "partial" : ageHours > 72 ? "stale" : "fresh";
+        const freshness = this.getDataFreshness(latestTimestamp);
         const dataQuality = {
-            status,
-            label: status === "fresh" ? "Aktuell" : status === "stale" ? "Veraltet" : "Teilweise",
+            status: freshness.status,
+            label: freshness.label,
             matchCoverage,
             eloSamples: eloHistory.length,
-            latestTimestamp
+            latestTimestamp,
+            ageHours: Number.isFinite(freshness.ageHours) ? Math.round(freshness.ageHours) : null
         };
 
         const recentElo = eloHistory.slice(-10);
@@ -309,7 +330,7 @@ class StatsCalculator {
             last5: [],
             mapPerformance: [],
             personalBests: { peakElo: 0, peakEloDate: null, longestWinStreak: 0, bestMap: null, bestThirtyGain: 0 },
-            dataQuality: { status: "partial", label: "Teilweise", matchCoverage: 0, eloSamples: 0, latestTimestamp: 0 },
+            dataQuality: { status: "stale", label: "Keine Matchdaten", matchCoverage: 0, eloSamples: 0, latestTimestamp: 0, ageHours: null },
             insights: []
         };
     }

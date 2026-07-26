@@ -517,20 +517,40 @@
 
   const enhancePlayerAnalytics = row => {
     const details = pairedDetailRow(row);
-    if (!details || details.querySelector(".player-analytics")) return;
+    if (!details) return;
+    const lastMatchTimestamp = number(row.dataset.lastTs);
+    const matchAgeHours = lastMatchTimestamp
+      ? Math.max(0, (Date.now() / 1000 - lastMatchTimestamp) / 3600)
+      : Infinity;
+    const freshness = matchAgeHours <= 7 * 24
+      ? { status: "fresh", label: "Aktuell", title: "Letztes Match innerhalb der vergangenen 7 Tage" }
+      : matchAgeHours <= 30 * 24
+        ? { status: "aging", label: "Über 1 Woche", title: "Letztes Match liegt zwischen 7 und 30 Tagen zurück" }
+        : {
+            status: "stale",
+            label: lastMatchTimestamp ? "Über 1 Monat" : "Keine Matchdaten",
+            title: lastMatchTimestamp ? "Letztes Match liegt mehr als 30 Tage zurück" : "Kein Match-Datum verfügbar"
+          };
+    const existingStatus = details.querySelector(".player-analytics .data-status");
+    if (existingStatus) {
+      existingStatus.classList.remove("status-fresh", "status-aging", "status-stale", "status-partial");
+      existingStatus.classList.add(`status-${freshness.status}`);
+      existingStatus.innerHTML = `<i></i>${freshness.label}`;
+      existingStatus.title = freshness.title;
+      row.dataset.quality = freshness.status;
+    }
+    if (details.querySelector(".player-analytics")) return;
     const player = playerData(row.dataset.playerId) || {};
     const history = player.history || [];
     const peak = Math.max(number(row.dataset.peak), ...normalizeHistory(history).map(point => point.y));
     const bestGain = calculateBestThirty(history);
-    const status = number(row.dataset.lastTs) && Date.now() / 1000 - number(row.dataset.lastTs) < 72 * 3600 ? "fresh" : "stale";
-    const label = status === "fresh" ? "Aktuell" : "Veraltet";
     const formWins = number(row.dataset.formWins);
     const formTotal = number(row.dataset.formTotal);
     const analytics = document.createElement("div");
     analytics.className = "player-analytics";
     analytics.innerHTML = `
       <div class="player-analytics-head">
-        <div><span class="data-status status-${status}"><i></i>${label}</span><small>${normalizeHistory(history).length} ELO-Werte geprüft</small></div>
+        <div><span class="data-status status-${freshness.status}" title="${freshness.title}"><i></i>${freshness.label}</span><small>${normalizeHistory(history).length} ELO-Werte geprüft</small></div>
         <button type="button" class="share-player" data-share-player="${row.dataset.playerId}">Ansicht teilen <span aria-hidden="true">↗</span></button>
       </div>
       <div class="personal-bests">

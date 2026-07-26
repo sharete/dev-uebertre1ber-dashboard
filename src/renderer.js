@@ -130,7 +130,7 @@ class Renderer {
   renderPlayer(p) {
     const { recent, teammates, streak, last5, mapPerformance, eloHistory } = p.stats;
     const personalBests = p.stats.personalBests || {};
-    const dataQuality = p.stats.dataQuality || { status: "partial", label: "Teilweise", matchCoverage: 0, eloSamples: 0 };
+    const dataQuality = p.stats.dataQuality || { status: "stale", label: "Keine Matchdaten", matchCoverage: 0, eloSamples: 0 };
     const insights = p.stats.insights || [];
     const recentFormWins = last5.filter(result => result === 'W').length;
     const recentFormPercent = last5.length ? Math.round(recentFormWins / last5.length * 100) : 0;

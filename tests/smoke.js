@@ -43,6 +43,10 @@ assert.match(generated, /id="dashboard-toast"/);
 assert.equal(fs.statSync(path.join(root, "vendor", "chart.min.js")).size > 100000, true);
 assert.match(dashboardScript, /toMatchSeries/);
 assert.match(dashboardScript, /cubicInterpolationMode: "monotone"/);
+assert.match(dashboardScript, /matchAgeHours <= 7 \* 24/);
+assert.match(dashboardScript, /matchAgeHours <= 30 \* 24/);
+assert.match(dashboardCss, /\.data-status\.status-aging/);
+assert.match(dashboardCss, /\.data-status\.status-stale/);
 assert.match(dashboardScript, /max: 30/);
 assert.match(dashboardScript, /matchTooltipCallbacks/);
 assert.match(dashboardScript, /Klicken, um das FACEIT-Match zu öffnen/);
@@ -159,5 +163,12 @@ assert.equal(analyzedStats.personalBests.longestWinStreak, 2);
 assert.equal(analyzedStats.personalBests.bestMap.map, "Mirage");
 assert.equal(analyzedStats.dataQuality.matchCoverage, 100);
 assert.ok(Array.isArray(analyzedStats.insights));
+
+const freshnessNow = 2_000_000_000;
+assert.equal(stats.getDataFreshness(freshnessNow - 168 * 3600, freshnessNow).status, "fresh");
+assert.equal(stats.getDataFreshness(freshnessNow - (168 * 3600 + 1), freshnessNow).status, "aging");
+assert.equal(stats.getDataFreshness(freshnessNow - 720 * 3600, freshnessNow).status, "aging");
+assert.equal(stats.getDataFreshness(freshnessNow - (720 * 3600 + 1), freshnessNow).status, "stale");
+assert.equal(stats.getDataFreshness(0, freshnessNow).status, "stale");
 
 console.log("Dashboard smoke tests passed.");
