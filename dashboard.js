@@ -509,7 +509,8 @@
     const points = normalizeHistory(history, 100);
     let gain = 0;
     points.forEach((point, index) => {
-      const end = points[Math.min(index + 29, points.length - 1)];
+      if (index + 29 >= points.length) return;
+      const end = points[index + 29];
       gain = Math.max(gain, end.y - point.y);
     });
     return gain;
@@ -518,19 +519,23 @@
   const enhancePlayerAnalytics = row => {
     const details = pairedDetailRow(row);
     if (!details) return;
+    const player = playerData(row.dataset.playerId) || {};
+    const history = player.history || [];
+    const eloSamples = number(player.dataQuality?.eloSamples, normalizeHistory(history).length);
     const lastMatchTimestamp = number(row.dataset.lastTs);
     const matchAgeHours = lastMatchTimestamp
       ? Math.max(0, (Date.now() / 1000 - lastMatchTimestamp) / 3600)
       : Infinity;
     const freshness = matchAgeHours <= 7 * 24
-      ? { status: "fresh", label: "Aktuell", title: "Letztes Match innerhalb der vergangenen 7 Tage" }
+      ? { status: "fresh", label: "Match innerhalb 1 Woche", title: "Letztes Match innerhalb der vergangenen 7 Tage" }
       : matchAgeHours <= 30 * 24
-        ? { status: "aging", label: "Über 1 Woche", title: "Letztes Match liegt zwischen 7 und 30 Tagen zurück" }
+        ? { status: "aging", label: "Match älter als 1 Woche", title: "Letztes Match liegt zwischen 7 und 30 Tagen zurück" }
         : {
             status: "stale",
-            label: lastMatchTimestamp ? "Über 1 Monat" : "Keine Matchdaten",
+            label: lastMatchTimestamp ? "Match älter als 1 Monat" : "Keine Matchdaten",
             title: lastMatchTimestamp ? "Letztes Match liegt mehr als 30 Tage zurück" : "Kein Match-Datum verfügbar"
           };
+    details.querySelectorAll(".share-player").forEach(button => button.remove());
     const existingStatus = details.querySelector(".player-analytics .data-status");
     if (existingStatus) {
       existingStatus.classList.remove("status-fresh", "status-aging", "status-stale", "status-partial");
@@ -539,9 +544,30 @@
       existingStatus.title = freshness.title;
       row.dataset.quality = freshness.status;
     }
-    if (details.querySelector(".player-analytics")) return;
-    const player = playerData(row.dataset.playerId) || {};
-    const history = player.history || [];
+    const existingAnalytics = details.querySelector(".player-analytics");
+    if (existingAnalytics) {
+      const setCardScope = (label, scope, append = false) => {
+        const card = [...existingAnalytics.querySelectorAll(".personal-bests article")]
+          .find(article => text(article.querySelector("span")?.textContent) === label);
+        if (!card) return;
+        let small = card.querySelector("small");
+        if (!small) {
+          small = document.createElement("small");
+          card.append(small);
+        }
+        small.textContent = append && text(small.textContent)
+          ? `${text(small.textContent).replace(/\s*\u00b7\s*letzte 30 Matches$/i, "")} \u00b7 ${scope}`
+          : scope;
+      };
+      setCardScope("Peak ELO", `Aus ${eloSamples} ELO-Werten`);
+      setCardScope("L\u00e4ngste Serie", "Letzte 30 Matches");
+      setCardScope("Beste Map", "letzte 30 Matches", true);
+      setCardScope("Beste 30er-Phase", `ELO \u00b7 aus ${eloSamples} Werten`);
+      [...existingAnalytics.querySelectorAll(".player-insight strong")]
+        .filter(element => text(element.textContent) === "Beste Map")
+        .forEach(element => element.textContent = "Beste Map \u00b7 letzte 30 Matches");
+      return;
+    }
     const peak = Math.max(number(row.dataset.peak), ...normalizeHistory(history).map(point => point.y));
     const bestGain = calculateBestThirty(history);
     const formWins = number(row.dataset.formWins);
@@ -551,13 +577,12 @@
     analytics.innerHTML = `
       <div class="player-analytics-head">
         <div><span class="data-status status-${freshness.status}" title="${freshness.title}"><i></i>${freshness.label}</span><small>${normalizeHistory(history).length} ELO-Werte geprüft</small></div>
-        <button type="button" class="share-player" data-share-player="${row.dataset.playerId}">Ansicht teilen <span aria-hidden="true">↗</span></button>
       </div>
       <div class="personal-bests">
-        <article><span>Peak ELO</span><strong>${peak || number(row.dataset.elo)}</strong></article>
-        <article><span>Aktuelle Serie</span><strong>${text(row.dataset.streak) || "—"}</strong></article>
+        <article><span>Peak ELO</span><strong>${peak || number(row.dataset.elo)}</strong><small>Verfügbarer ELO-Verlauf</small></article>
+        <article><span>Aktuelle Serie</span><strong>${text(row.dataset.streak) || "—"}</strong><small>Letzte 30 Matches</small></article>
         <article data-form-card><span>Letzte 5 Matches</span><strong>${formTotal ? `${formWins}/${formTotal}` : "—"}</strong><small>${formTotal ? `${number(row.dataset.form)}% Siege` : "Keine Daten"}</small></article>
-        <article><span>Beste 30er-Phase</span><strong>${bestGain > 0 ? "+" : ""}${bestGain}</strong><small>ELO</small></article>
+        <article><span>Beste 30er-Phase</span><strong>${bestGain > 0 ? "+" : ""}${bestGain}</strong><small>ELO · verfügbarer Verlauf</small></article>
       </div>
       <div class="insight-grid"></div>`;
     const primaryColumn = [...(details.querySelector("td > div")?.children || [])]
@@ -574,36 +599,6 @@
     card.dataset.formCard = "";
     card.innerHTML = `<span>Letzte 5 Matches</span><strong>${total ? `${wins}/${total}` : "—"}</strong><small>${total ? `${number(row.dataset.form)}% Siege` : "Keine Daten"}</small>`;
     analytics.append(card);
-  };
-
-  const toast = message => {
-    const element = document.getElementById("dashboard-toast");
-    if (!element) return;
-    element.textContent = message;
-    element.classList.add("show");
-    window.clearTimeout(state.toastTimer);
-    state.toastTimer = window.setTimeout(() => element.classList.remove("show"), 2800);
-  };
-
-  const sharePlayer = async playerId => {
-    const row = playerRows().find(candidate => candidate.dataset.playerId === playerId);
-    const url = new URL(window.location.href);
-    url.searchParams.set("player", playerId);
-    url.hash = "leaderboard";
-    const payload = {
-      title: `${row?.dataset.nickname || "Spieler"} · Uebertr1eber Dashboard`,
-      text: `${row?.dataset.nickname || "Spieler"}: ${row?.dataset.elo || "—"} ELO im Uebertr1eber Dashboard`,
-      url: url.href
-    };
-    try {
-      if (navigator.share) await navigator.share(payload);
-      else {
-        await navigator.clipboard.writeText(url.href);
-        toast("Spieleransicht wurde in die Zwischenablage kopiert.");
-      }
-    } catch (error) {
-      if (error?.name !== "AbortError") toast("Teilen war nicht möglich. Bitte URL kopieren.");
-    }
   };
 
   const setupRows = () => {
@@ -641,10 +636,6 @@
         }
       });
       row.querySelectorAll("a[target='_blank']").forEach(link => link.rel = "noopener noreferrer");
-    });
-    tableBody.addEventListener("click", event => {
-      const button = event.target.closest("[data-share-player]");
-      if (button) void sharePlayer(button.dataset.sharePlayer);
     });
   };
 
@@ -729,11 +720,6 @@
         void renderComparison();
       });
       container.append(button);
-      if (index < 3) {
-        state.selectedPlayers.add(player.id);
-        button.classList.add("active");
-        button.setAttribute("aria-pressed", "true");
-      }
     });
   };
 
@@ -798,9 +784,11 @@
       if (canvas) canvas.hidden = true;
       if (fallback) {
         fallback.hidden = false;
-        fallback.textContent = chartAvailable()
-          ? "Für den Vergleich sind noch keine Verlaufsdaten verfügbar."
-          : "Das Diagramm konnte nicht geladen werden. Die Ranking-Daten bleiben vollständig verfügbar.";
+        fallback.textContent = !selectedPlayers.length
+          ? "Wähle mindestens einen Spieler für den ELO-Vergleich aus."
+          : chartAvailable()
+            ? "Für den Vergleich sind noch keine Verlaufsdaten verfügbar."
+            : "Das Diagramm konnte nicht geladen werden. Die Ranking-Daten bleiben vollständig verfügbar.";
       }
       return;
     }
@@ -874,6 +862,8 @@
   const renderSynergies = () => {
     const container = document.getElementById("synergy-grid");
     if (!container) return;
+    const timeframe = document.querySelector(".synergy-head > p");
+    if (timeframe) timeframe.textContent = "Gemeinsame Matches und Winrate auf Basis der letzten 30 Matches je Spieler.";
     let synergies = Array.isArray(window.DASHBOARD_ANALYTICS?.synergies)
       ? window.DASHBOARD_ANALYTICS.synergies
       : [];
@@ -909,7 +899,7 @@
         <div><strong></strong><small></small></div>
         <span class="synergy-rate"></span>`;
       article.querySelector("strong").textContent = (synergy.players || []).join(" + ");
-      article.querySelector("small").textContent = `${number(synergy.matches)} gemeinsame Matches`;
+      article.querySelector("small").textContent = `${number(synergy.matches)} gemeinsame Matches · letzte 30 je Spieler`;
       article.querySelector(".synergy-rate").textContent = `${number(synergy.winrate)}% WR`;
       container.append(article);
     });
@@ -932,6 +922,7 @@
   };
 
   upgradeInterfaceIcons();
+  document.getElementById("dashboard-toast")?.remove();
   setupRows();
   setupFilters();
   setupSorting();
@@ -941,14 +932,4 @@
   renderSynergies();
   waitForCharts();
 
-  const sharedPlayerId = new URLSearchParams(window.location.search).get("player");
-  if (sharedPlayerId) {
-    const row = playerRows().find(candidate => candidate.dataset.playerId === sharedPlayerId);
-    if (row) {
-      window.setTimeout(() => {
-        toggleDetails(row);
-        row.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 150);
-    }
-  }
 })();

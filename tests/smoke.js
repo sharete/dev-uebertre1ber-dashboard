@@ -39,7 +39,6 @@ assert.match(generated, /id="formSort"/);
 assert.match(generated, /id="global-insights"/);
 assert.match(generated, /id="comparison-metrics"/);
 assert.match(generated, /id="synergy-grid"/);
-assert.match(generated, /id="dashboard-toast"/);
 assert.equal(fs.statSync(path.join(root, "vendor", "chart.min.js")).size > 100000, true);
 assert.match(dashboardScript, /toMatchSeries/);
 assert.match(dashboardScript, /cubicInterpolationMode: "monotone"/);
@@ -52,7 +51,12 @@ assert.match(dashboardScript, /matchTooltipCallbacks/);
 assert.match(dashboardScript, /Klicken, um das FACEIT-Match zu öffnen/);
 assert.match(dashboardScript, /renderComparisonMetrics/);
 assert.match(dashboardScript, /renderSynergies/);
-assert.match(dashboardScript, /sharePlayer/);
+assert.doesNotMatch(dashboardScript, /navigator\.share|navigator\.clipboard|data-share-player/);
+assert.doesNotMatch(dashboardScript, /state\.selectedPlayers\.add\(player\.id\)/);
+assert.doesNotMatch(dashboardScript, /if \(index < 3\)/);
+assert.match(dashboardScript, /Wähle mindestens einen Spieler für den ELO-Vergleich aus/);
+assert.match(template, /letzten 30 Matches je Spieler/);
+assert.doesNotMatch(template, /dashboard-toast/);
 assert.match(dashboardScript, /upgradeInterfaceIcons/);
 assert.match(dashboardScript, /formWins/);
 assert.match(dashboardCss, /\.chart-fallback\[hidden\]/);
@@ -114,6 +118,8 @@ assert.match(rendered, /&lt;script&gt;/);
 assert.match(rendered, /data-form="60"/);
 assert.match(rendered, />3\/5</);
 assert.match(rendered, /60% Siege/);
+assert.match(rendered, /Letzte 30 Matches/);
+assert.doesNotMatch(rendered, /Ansicht teilen|data-share-player/);
 fs.rmSync(tempDir, { recursive: true, force: true });
 
 const normalizedStats = stats.calculatePlayerStats("player-1", [], {}, [
@@ -170,5 +176,11 @@ assert.equal(stats.getDataFreshness(freshnessNow - (168 * 3600 + 1), freshnessNo
 assert.equal(stats.getDataFreshness(freshnessNow - 720 * 3600, freshnessNow).status, "aging");
 assert.equal(stats.getDataFreshness(freshnessNow - (720 * 3600 + 1), freshnessNow).status, "stale");
 assert.equal(stats.getDataFreshness(0, freshnessNow).status, "stale");
+assert.equal(stats.getDataFreshness(freshnessNow - 169 * 3600, freshnessNow).label, "Match älter als 1 Woche");
+
+const twentyNineEloPoints = Array.from({ length: 29 }, (_, index) => ({ date: 1_700_000_000 + index, elo: 1000 + index * 5 }));
+const thirtyEloPoints = [...twentyNineEloPoints, { date: 1_700_000_029, elo: 1145 }];
+assert.equal(stats.calculatePlayerStats("player-1", [], {}, twentyNineEloPoints).personalBests.bestThirtyGain, 0);
+assert.equal(stats.calculatePlayerStats("player-1", [], {}, thirtyEloPoints).personalBests.bestThirtyGain, 145);
 
 console.log("Dashboard smoke tests passed.");

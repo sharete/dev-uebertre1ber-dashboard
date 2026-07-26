@@ -347,13 +347,12 @@ class Renderer {
       <span class="data-status status-${escapeHtml(dataQuality.status)}"><i></i>${escapeHtml(dataQuality.label)}</span>
       <small>${Number(dataQuality.matchCoverage) || 0}% Match-Abdeckung · ${Number(dataQuality.eloSamples) || 0} ELO-Werte</small>
     </div>
-    <button type="button" class="share-player" data-share-player="${playerId}">Ansicht teilen <span aria-hidden="true">↗</span></button>
   </div>
   <div class="personal-bests" aria-label="Persönliche Bestwerte">
-    <article><span>Peak ELO</span><strong>${Number(personalBests.peakElo) || peakElo}</strong></article>
-    <article><span>Längste Serie</span><strong>${Number(personalBests.longestWinStreak) || 0}W</strong></article>
-    <article><span>Beste Map</span><strong>${escapeHtml(bestMap?.map || "—")}</strong><small>${bestMap ? `${bestMap.winrate}% WR` : "Noch offen"}</small></article>
-    <article><span>Beste 30er-Phase</span><strong>${Number(personalBests.bestThirtyGain) > 0 ? "+" : ""}${Number(personalBests.bestThirtyGain) || 0}</strong><small>ELO</small></article>
+    <article><span>Peak ELO</span><strong>${Number(personalBests.peakElo) || peakElo}</strong><small>Aus ${Number(dataQuality.eloSamples) || 0} ELO-Werten</small></article>
+    <article><span>Längste Serie</span><strong>${Number(personalBests.longestWinStreak) || 0}W</strong><small>Letzte 30 Matches</small></article>
+    <article><span>Beste Map</span><strong>${escapeHtml(bestMap?.map || "—")}</strong><small>${bestMap ? `${bestMap.winrate}% WR · letzte 30 Matches` : "Letzte 30 Matches"}</small></article>
+    <article><span>Beste 30er-Phase</span><strong>${Number(personalBests.bestThirtyGain) > 0 ? "+" : ""}${Number(personalBests.bestThirtyGain) || 0}</strong><small>ELO · aus ${Number(dataQuality.eloSamples) || 0} Werten</small></article>
     <article data-form-card><span>Letzte 5 Matches</span><strong>${last5.length ? `${recentFormWins}/${last5.length}` : "—"}</strong><small>${last5.length ? `${recentFormPercent}% Siege` : "Keine Daten"}</small></article>
   </div>
   <div class="insight-grid">${insightHtml}</div>

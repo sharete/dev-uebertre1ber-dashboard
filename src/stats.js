@@ -17,12 +17,12 @@ class StatsCalculator {
 
         const ageHours = Math.max(0, (nowSeconds - Number(latestTimestamp)) / 3600);
         if (ageHours <= FRESH_HOURS) {
-            return { status: "fresh", label: "Aktuell", ageHours };
+            return { status: "fresh", label: "Match innerhalb 1 Woche", ageHours };
         }
         if (ageHours <= AGING_HOURS) {
-            return { status: "aging", label: "Über 1 Woche", ageHours };
+            return { status: "aging", label: "Match älter als 1 Woche", ageHours };
         }
-        return { status: "stale", label: "Über 1 Monat", ageHours };
+        return { status: "stale", label: "Match älter als 1 Monat", ageHours };
     }
 
     /**
@@ -248,8 +248,8 @@ class StatsCalculator {
             .filter(map => map.map !== "Unknown" && map.matches >= 2)
             .sort((a, b) => b.winrate - a.winrate || parseFloat(b.kd) - parseFloat(a.kd) || b.matches - a.matches)[0] || null;
         let bestThirtyGain = 0;
-        for (let index = 0; index < eloHistory.length; index++) {
-            const end = eloHistory[Math.min(index + 29, eloHistory.length - 1)];
+        for (let index = 0; index + 29 < eloHistory.length; index++) {
+            const end = eloHistory[index + 29];
             bestThirtyGain = Math.max(bestThirtyGain, end.elo - eloHistory[index].elo);
         }
 
@@ -285,7 +285,7 @@ class StatsCalculator {
         if (currentElo && personalBests.peakElo - currentElo <= 5) insights.push({ type: "peak", icon: "◆", title: "Peak-Alarm", text: `${currentElo} ELO · persönlicher Bestwert` });
         if (recentGain >= 80) insights.push({ type: "positive", icon: "↑", title: "Starker Trend", text: `+${recentGain} ELO in 10 Matches` });
         if (recentGain <= -80) insights.push({ type: "warning", icon: "↓", title: "Formtief", text: `${recentGain} ELO in 10 Matches` });
-        if (bestMap) insights.push({ type: "map", icon: "⌖", title: "Beste Map", text: `${bestMap.map} · ${bestMap.winrate}% Winrate` });
+        if (bestMap) insights.push({ type: "map", icon: "⌖", title: "Beste Map · letzte 30 Matches", text: `${bestMap.map} · ${bestMap.winrate}% Winrate` });
 
         // Aggregate Teammate Stats
         const teammates = Object.entries(teammateCounts).map(([id, cnt]) => {
