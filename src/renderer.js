@@ -106,6 +106,17 @@ class Renderer {
     }
 
     // Inject compact comparison data. Heavy match/map data lives in lazy player JSON files.
+    const trackedIds = new Set(players.map(player => player.playerId));
+    const compactTrackedTeammates = periodStats => (periodStats?.teammates || [])
+      .filter(mate => trackedIds.has(mate.playerId))
+      .map(mate => ({
+        playerId: mate.playerId,
+        nickname: mate.nickname,
+        count: Number(mate.count) || 0,
+        wins: Number(mate.wins) || 0,
+        losses: Number(mate.losses) || 0,
+        winratePct: Number(mate.winratePct) || 0
+      }));
     const serializePeriod = (period, periodStats) => ({
       requestedMatches: Number(period) || 30,
       recent: periodStats?.recent || {},
@@ -114,7 +125,7 @@ class Renderer {
       personalBests: periodStats?.personalBests || {},
       dataQuality: periodStats?.dataQuality || {},
       insights: periodStats?.insights || [],
-      teammates: periodStats?.teammates || [],
+      teammates: compactTrackedTeammates(periodStats),
       matchIds: (periodStats?.matchHistory || []).map(match => match.matchId).filter(Boolean),
       history: (periodStats?.eloHistory || []).slice(-Number(period) || -30)
     });
@@ -133,14 +144,13 @@ class Renderer {
       personalBests: p.stats.personalBests || {},
       dataQuality: p.stats.dataQuality || {},
       insights: p.stats.insights || [],
-      teammates: p.stats.teammates || [],
+      teammates: compactTrackedTeammates(p.stats),
       history: (p.stats.eloHistory || []).slice(-100),
       periods: Object.fromEntries(["30", "60", "100"].map(period => [
         period,
         serializePeriod(period, p.periodStats?.[period] || p.stats)
       ]))
     }));
-    const trackedIds = new Set(players.map(player => player.playerId));
     const synergies = [];
     const seenPairs = new Set();
     for (const player of comparisonData) {
