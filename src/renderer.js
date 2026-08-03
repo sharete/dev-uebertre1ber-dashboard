@@ -21,9 +21,9 @@ const safeUrl = (value) => escapeHtml(normalizeUrl(value));
 const serializeForScript = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
 const countryFlag = value => {
-  const code = String(value || '').trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(code)) return '🌐';
-  return String.fromCodePoint(...[...code].map(letter => 127397 + letter.charCodeAt(0)));
+  const code = String(value || '').trim().toLowerCase();
+  if (!/^[a-z]{2}$/.test(code)) return '<span class="flag-fallback" aria-label="Land unbekannt">●</span>';
+  return `<img class="country-flag" src="https://flagcdn.com/24x18/${code}.png" srcset="https://flagcdn.com/48x36/${code}.png 2x" width="24" height="18" alt="Länderflagge ${escapeHtml(code.toUpperCase())}" loading="lazy">`;
 };
 
 const iconSvg = (name, className = 'ui-icon') => {
@@ -52,6 +52,7 @@ class Renderer {
     template = template.replace("<!-- INSERT_ELO_TABLE_HERE -->", rows);
     template = template.replaceAll("<!-- INSERT_LAST_UPDATED -->", lastUpdated);
     template = template.replaceAll("<!-- INSERT_PLAYER_COUNT -->", players.length);
+    template = template.replaceAll("<!-- INSERT_ASSET_VERSION -->", encodeURIComponent(String(lastUpdated || '1')));
 
     // Inject awards section
     const awardsHtml = this.renderAwards(awards);
@@ -60,6 +61,11 @@ class Renderer {
     const playerDataDirectory = path.join(path.dirname(outputPath), 'data', 'players');
     fs.mkdirSync(playerDataDirectory, { recursive: true });
 
+    const trackedProfiles = new Map(players.map(player => [player.playerId, player]));
+    const enrichTeammates = periodStats => (periodStats?.teammates || []).map(mate => {
+      const tracked = trackedProfiles.get(mate.playerId);
+      return tracked ? { ...mate, avatar: tracked.avatar || mate.avatar, url: tracked.faceitUrl || mate.url } : mate;
+    });
     const detailPeriod = (period, periodStats) => ({
       requestedMatches: Number(period) || 30,
       recent: periodStats?.recent || {},
@@ -69,7 +75,7 @@ class Renderer {
       personalBests: periodStats?.personalBests || {},
       dataQuality: periodStats?.dataQuality || {},
       insights: periodStats?.insights || [],
-      teammates: periodStats?.teammates || []
+      teammates: enrichTeammates(periodStats)
     });
 
     for (const player of players) {
@@ -106,17 +112,6 @@ class Renderer {
     }
 
     // Inject compact comparison data. Heavy match/map data lives in lazy player JSON files.
-    const trackedIds = new Set(players.map(player => player.playerId));
-    const compactTrackedTeammates = periodStats => (periodStats?.teammates || [])
-      .filter(mate => trackedIds.has(mate.playerId))
-      .map(mate => ({
-        playerId: mate.playerId,
-        nickname: mate.nickname,
-        count: Number(mate.count) || 0,
-        wins: Number(mate.wins) || 0,
-        losses: Number(mate.losses) || 0,
-        winratePct: Number(mate.winratePct) || 0
-      }));
     const serializePeriod = (period, periodStats) => ({
       requestedMatches: Number(period) || 30,
       recent: periodStats?.recent || {},
@@ -125,7 +120,6 @@ class Renderer {
       personalBests: periodStats?.personalBests || {},
       dataQuality: periodStats?.dataQuality || {},
       insights: periodStats?.insights || [],
-      teammates: compactTrackedTeammates(periodStats),
       matchIds: (periodStats?.matchHistory || []).map(match => match.matchId).filter(Boolean),
       history: (periodStats?.eloHistory || []).slice(-Number(period) || -30)
     });
@@ -144,33 +138,13 @@ class Renderer {
       personalBests: p.stats.personalBests || {},
       dataQuality: p.stats.dataQuality || {},
       insights: p.stats.insights || [],
-      teammates: compactTrackedTeammates(p.stats),
       history: (p.stats.eloHistory || []).slice(-100),
       periods: Object.fromEntries(["30", "60", "100"].map(period => [
         period,
         serializePeriod(period, p.periodStats?.[period] || p.stats)
       ]))
     }));
-    const synergies = [];
-    const seenPairs = new Set();
-    for (const player of comparisonData) {
-      for (const mate of player.teammates) {
-        if (!trackedIds.has(mate.playerId)) continue;
-        const pairKey = [player.id, mate.playerId].sort().join(":");
-        if (seenPairs.has(pairKey)) continue;
-        seenPairs.add(pairKey);
-        const other = comparisonData.find(candidate => candidate.id === mate.playerId);
-        synergies.push({
-          ids: [player.id, mate.playerId],
-          players: [player.nickname, other?.nickname || mate.nickname],
-          matches: Number(mate.count) || 0,
-          wins: Number(mate.wins) || 0,
-          winrate: Number(mate.winratePct) || 0
-        });
-      }
-    }
-    synergies.sort((a, b) => b.matches - a.matches || b.winrate - a.winrate);
-    const comparisonScript = `<script>window.COMPARISON_DATA = ${serializeForScript(comparisonData)};window.DASHBOARD_ANALYTICS = ${serializeForScript({ lastUpdated, synergies })};</script>`;
+    const comparisonScript = `<script>window.COMPARISON_DATA = ${serializeForScript(comparisonData)};window.DASHBOARD_ANALYTICS = ${serializeForScript({ lastUpdated })};</script>`;
     template = template.replace("<!-- INSERT_COMPARISON_DATA -->", comparisonScript);
 
     // Inject history data
@@ -238,7 +212,7 @@ class Renderer {
           <div class="ranking-card-rank" aria-label="Ranking"><span>—</span><small>Rang</small></div>
           ${avatar}
           <div class="ranking-identity">
-            <div class="ranking-country"><span aria-hidden="true">${countryFlag(p.country)}</span><span>${escapeHtml(String(p.country || 'INT').toUpperCase())}</span></div>
+            <div class="ranking-country">${countryFlag(p.country)}</div>
             <a class="nickname-link" href="${safeUrl(p.faceitUrl)}" target="_blank" rel="noopener noreferrer">${nickname}</a>
             <div class="ranking-meta"><img src="icons/levels/level_${Math.max(1, Math.min(10, Number(p.level) || 1))}_icon.png" alt="FACEIT Level ${escapeHtml(p.level)}"><span>Level ${escapeHtml(p.level)}</span><span class="data-status status-${escapeHtml(quality.status)}">${escapeHtml(quality.label)}</span></div>
           </div>

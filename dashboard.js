@@ -11,7 +11,7 @@
     historyCachePromise: null,
     comparisonRenderId: 0,
     playerDetailCache: new Map(),
-    deepDive: { playerId: null, tab: "overview", matchPage: 1, map: "all", result: "all", query: "", mapSort: "matches", mapSortDirection: "desc", chart: null, trigger: null, filterTimer: null }
+    deepDive: { playerId: null, tab: "overview", matchPage: 1, teammatePage: 1, map: "all", result: "all", query: "", mapSort: "matches", mapSortDirection: "desc", chart: null, trigger: null, filterTimer: null }
   };
 
   const colors = ["#ff6a2b", "#64e6a4", "#69a9ff", "#a98dff", "#ff6e7b"];
@@ -991,11 +991,8 @@
       if (awardLabel) awardLabel.textContent = `(letzte ${period} Matches)`;
       const comparisonLabel = document.getElementById("comparison-period-label");
       if (comparisonLabel) comparisonLabel.textContent = `Letzte ${period} Matches`;
-      const synergyLabel = document.getElementById("synergy-period-label");
-      if (synergyLabel) synergyLabel.textContent = `Gemeinsame Matches und Winrate auf Basis der letzten ${period} Matches je Spieler.`;
       playerRows().forEach(updatePlayerPeriod);
       renderPeriodAwards();
-      renderSynergies();
       void renderComparison();
     }));
   };
@@ -1119,6 +1116,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: false,
         interaction: { mode: "nearest", axis: "x", intersect: false },
         plugins: {
           legend: { position: "top", align: "start", labels: { usePointStyle: true, boxWidth: 7, boxHeight: 7, padding: 18, font: { size: 10 } } },
@@ -1143,73 +1141,6 @@
     });
   };
 
-  const renderSynergies = () => {
-    const container = document.getElementById("synergy-grid");
-    if (!container) return;
-    const period = state.analysisPeriod;
-    const players = Array.isArray(window.COMPARISON_DATA) ? window.COMPARISON_DATA : [];
-    const tracked = new Map(players.map(player => [player.id, player]));
-    const seenPairs = new Set();
-    let synergies = [];
-    players.forEach(player => {
-      (periodData(player).teammates || []).forEach(mate => {
-        if (!tracked.has(mate.playerId)) return;
-        const key = [player.id, mate.playerId].sort().join(":");
-        if (seenPairs.has(key)) return;
-        seenPairs.add(key);
-        synergies.push({
-          players: [player.nickname, tracked.get(mate.playerId)?.nickname || mate.nickname],
-          matches: number(mate.count),
-          wins: number(mate.wins),
-          winrate: number(mate.winratePct)
-        });
-      });
-    });
-    synergies.sort((a, b) => number(b.matches) - number(a.matches) || number(b.winrate) - number(a.winrate));
-    if (!synergies.length) {
-      const byName = new Map(playerRows().map(row => [row.dataset.nickname, row]));
-      const seen = new Set();
-      synergies = [];
-      document.querySelectorAll(".details-row").forEach(details => {
-        const playerRow = playerRows().find(row => row.dataset.playerId === details.dataset.playerId);
-        const firstList = details.querySelector("ul");
-        firstList?.querySelectorAll("li").forEach(item => {
-          const mateName = item.querySelector("a")?.textContent?.trim();
-          if (!mateName || !byName.has(mateName)) return;
-          const pair = [playerRow?.dataset.nickname, mateName].sort();
-          const key = pair.join(":");
-          if (seen.has(key)) return;
-          seen.add(key);
-          const copy = item.querySelector("span")?.textContent || "";
-          synergies.push({
-            players: pair,
-            matches: number(copy),
-            winrate: number(copy.match(/(\d+)%/)?.[1])
-          });
-        });
-      });
-    }
-    container.replaceChildren();
-    synergies.slice(0, 6).forEach((synergy, index) => {
-      const article = document.createElement("article");
-      article.className = "synergy-card";
-      article.innerHTML = `
-        <span class="synergy-rank">${String(index + 1).padStart(2, "0")}</span>
-        <div><strong></strong><small></small></div>
-        <span class="synergy-rate"></span>`;
-      article.querySelector("strong").textContent = (synergy.players || []).join(" + ");
-      article.querySelector("small").textContent = `${number(synergy.matches)} gemeinsame Matches · letzte ${period} je Spieler`;
-      article.querySelector(".synergy-rate").textContent = `${number(synergy.winrate)}% WR`;
-      container.append(article);
-    });
-    if (!container.children.length) {
-      const empty = document.createElement("p");
-      empty.className = "analytics-empty";
-      empty.textContent = "Noch keine gemeinsamen Matches zwischen getrackten Spielern.";
-      container.append(empty);
-    }
-  };
-
   const escapeUi = value => String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -1226,11 +1157,20 @@
     }
   };
 
-  const flagFor = value => {
+  const flagMarkup = value => {
+    const code = text(value).toLowerCase();
+    if (!/^[a-z]{2}$/.test(code)) return '<span class="flag-fallback" aria-label="Land unbekannt">●</span>';
+    return `<img class="country-flag" src="https://flagcdn.com/24x18/${code}.png" srcset="https://flagcdn.com/48x36/${code}.png 2x" width="24" height="18" alt="Länderflagge ${escapeUi(code.toUpperCase())}" loading="lazy">`;
+  };
+
+  const countryName = value => {
     const code = text(value).toUpperCase();
-    return /^[A-Z]{2}$/.test(code)
-      ? String.fromCodePoint(...[...code].map(letter => 127397 + letter.charCodeAt(0)))
-      : "🌐";
+    if (!/^[A-Z]{2}$/.test(code)) return "Unbekannt";
+    try {
+      return new Intl.DisplayNames(["de"], { type: "region" }).of(code) || code;
+    } catch {
+      return code;
+    }
   };
 
   const formatMatchDate = value => {
@@ -1275,7 +1215,7 @@
     const ceiling = currentLevel === 10 ? Math.max(number(profile.elo), floor) : levelStarts[currentLevel + 1];
     const progress = currentLevel === 10 ? 100 : Math.max(0, Math.min(100, (number(profile.elo) - floor) / Math.max(1, ceiling - floor) * 100));
     const created = profile.createdAt ? formatMatchDate(profile.createdAt) : "—";
-    const insights = (data.insights || []).slice(0, 4).map(insight => `
+    const insights = (data.insights || []).filter(insight => insight.type !== "map").slice(0, 4).map(insight => `
       <article class="deep-insight"><span>${escapeUi(insight.icon || "•")}</span><div><strong>${escapeUi(insight.title || "Hinweis")}</strong><small>${escapeUi(insight.text || "")}</small></div></article>`).join("");
     content.innerHTML = `
       <section class="deep-kpis" aria-label="Leistungskennzahlen der letzten ${state.analysisPeriod} Matches">
@@ -1295,7 +1235,7 @@
           <span>Account & Daten</span>
           <dl>
             <div><dt>Region</dt><dd>${escapeUi(text(profile.region).toUpperCase() || "—")}</dd></div>
-            <div><dt>Land</dt><dd>${flagFor(profile.country)} ${escapeUi(text(profile.country).toUpperCase() || "INT")}</dd></div>
+            <div><dt>Land</dt><dd class="country-value">${flagMarkup(profile.country)}<span>${escapeUi(countryName(profile.country))}</span></dd></div>
             <div><dt>FACEIT seit</dt><dd>${escapeUi(created)}</dd></div>
             <div><dt>Lifetime Matches</dt><dd>${number(profile.lifetimeMatches).toLocaleString("de-DE")}</dd></div>
             <div><dt>Datenabdeckung</dt><dd>${number(quality.matchCoverage)}%</dd></div>
@@ -1321,7 +1261,7 @@
     state.deepDive.chart = new Chart(canvas, {
       type: "line",
       data: { labels: history.map((_, index) => index + 1), datasets: [{ data: history.map(point => number(point.elo)), borderColor: "#ff642e", backgroundColor: "rgba(255,100,46,.12)", fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, tension: .34, cubicInterpolationMode: "monotone" }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { maxTicksLimit: 5 } } } }
+      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { maxTicksLimit: 5 } } } }
     });
   };
 
@@ -1393,14 +1333,32 @@
 
   const renderDeepTeammates = (detail, content) => {
     const teammates = [...(detailPeriodData(detail).teammates || [])].sort((a, b) => number(b.count) - number(a.count));
-    const tracked = new Set((window.COMPARISON_DATA || []).map(player => player.id));
-    const rows = teammates.map(mate => `<tr><td><span class="teammate-avatar">${mate.avatar ? `<img src="${escapeUi(safeHttp(mate.avatar))}" alt="" loading="lazy">` : escapeUi(text(mate.nickname).slice(0, 1).toUpperCase())}</span><strong>${escapeUi(mate.nickname || "—")}</strong></td><td>${number(mate.count)}</td><td class="positive">${number(mate.wins)}</td><td class="negative">${number(mate.losses)}</td><td class="${number(mate.winratePct) >= 50 ? "positive" : "negative"}">${number(mate.winratePct)}%</td><td>${tracked.has(mate.playerId) ? `<button class="teammate-open" type="button" data-open-player="${escapeUi(mate.playerId)}">Analyse →</button>` : `<a class="match-link" href="${escapeUi(safeHttp(mate.url))}" target="_blank" rel="noopener noreferrer">↗</a>`}</td></tr>`).join("");
-    content.innerHTML = `<section class="deep-section-head"><div><span>Team Chemistry</span><h3>Häufigste Teammates</h3></div><p>Letzte ${state.analysisPeriod} Matches</p></section><div class="deep-table-scroll"><table class="deep-table teammate-table"><thead><tr><th>Teammate</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Winrate</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="deep-empty">Keine gemeinsamen Matches vorhanden.</td></tr>'}</tbody></table></div>`;
+    const tracked = new Map((window.COMPARISON_DATA || []).map(player => [player.id, player]));
+    const pageSize = 25;
+    const pages = Math.max(1, Math.ceil(teammates.length / pageSize));
+    state.deepDive.teammatePage = Math.min(state.deepDive.teammatePage, pages);
+    const start = (state.deepDive.teammatePage - 1) * pageSize;
+    const page = teammates.slice(start, start + pageSize);
+    const rows = page.map(mate => {
+      const trackedPlayer = tracked.get(mate.playerId);
+      const avatarUrl = trackedPlayer?.avatar || mate.avatar;
+      const fallback = escapeUi(text(mate.nickname).slice(0, 2).toUpperCase() || "?");
+      return `<tr><td><span class="teammate-avatar"><span class="avatar-fallback">${fallback}</span>${avatarUrl ? `<img src="${escapeUi(safeHttp(avatarUrl))}" alt="" loading="lazy" decoding="async">` : ""}</span><strong>${escapeUi(mate.nickname || "—")}</strong></td><td>${number(mate.count)}</td><td class="positive">${number(mate.wins)}</td><td class="negative">${number(mate.losses)}</td><td class="${number(mate.winratePct) >= 50 ? "positive" : "negative"}">${number(mate.winratePct)}%</td><td>${trackedPlayer ? `<button class="teammate-open" type="button" data-open-player="${escapeUi(mate.playerId)}">Analyse →</button>` : `<a class="match-link" href="${escapeUi(safeHttp(mate.url))}" target="_blank" rel="noopener noreferrer">↗</a>`}</td></tr>`;
+    }).join("");
+    const rangeStart = teammates.length ? start + 1 : 0;
+    const rangeEnd = Math.min(start + pageSize, teammates.length);
+    content.innerHTML = `<section class="deep-section-head"><div><span>Team Chemistry</span><h3>Häufigste Teammates</h3></div><p>${rangeStart}–${rangeEnd} von ${teammates.length} · letzte ${state.analysisPeriod} Matches</p></section><div class="deep-table-scroll"><table class="deep-table teammate-table"><thead><tr><th>Teammate</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Winrate</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="deep-empty">Keine gemeinsamen Matches vorhanden.</td></tr>'}</tbody></table></div><div class="deep-pagination"><button type="button" data-teammate-page="prev" ${state.deepDive.teammatePage === 1 ? "disabled" : ""}>← Zurück</button><span>Seite ${state.deepDive.teammatePage} von ${pages}</span><button type="button" data-teammate-page="next" ${state.deepDive.teammatePage === pages ? "disabled" : ""}>Weiter →</button></div>`;
+    content.querySelectorAll(".teammate-avatar img").forEach(image => image.addEventListener("error", () => image.remove()));
     content.querySelectorAll("[data-open-player]").forEach(button => button.addEventListener("click", () => openPlayerDeepDive(playerRows().find(row => row.dataset.playerId === button.dataset.openPlayer))));
+    content.querySelectorAll("[data-teammate-page]").forEach(button => button.addEventListener("click", () => {
+      state.deepDive.teammatePage += button.dataset.teammatePage === "next" ? 1 : -1;
+      renderDeepDive();
+    }));
   };
 
   const renderDeepHighlights = (detail, content) => {
     const matches = detailMatches(detail);
+    const bestMap = detailPeriodData(detail).personalBests?.bestMap;
     const pick = selector => matches.reduce((best, match) => !best || selector(match) > selector(best) ? match : best, null);
     const multikills = match => number(match.doubleKills) + number(match.tripleKills) + number(match.quadKills) + number(match.pentaKills);
     const highlights = [
@@ -1412,7 +1370,8 @@
       ["Multikill Match", pick(multikills), match => `${multikills(match)} Multikills`, "💥"],
       ["Größter ELO-Gewinn", pick(match => number(match.eloDiff, -999)), match => `${number(match.eloDiff) > 0 ? "+" : ""}${number(match.eloDiff)} ELO`, "◆"]
     ].filter(([, match]) => match);
-    content.innerHTML = `<section class="deep-section-head"><div><span>Performance Highlights</span><h3>Bestleistungen der letzten ${state.analysisPeriod} Matches</h3></div></section><div class="highlight-grid">${highlights.map(([label, match, format, icon]) => `<a class="highlight-card" href="${escapeUi(safeHttp(match.matchUrl))}" target="_blank" rel="noopener noreferrer"><span>${icon}</span><small>${escapeUi(label)}</small><strong>${escapeUi(format(match))}</strong><p>${escapeUi(match.map || "Unknown")} · ${escapeUi(formatMatchDate(match.date))} · ${escapeUi(match.score || "—")}</p><b>Match öffnen ↗</b></a>`).join("") || '<p class="deep-empty">Keine Match-Highlights vorhanden.</p>'}</div>`;
+    const bestMapCard = bestMap ? `<article class="highlight-card"><span>⌖</span><small>Beste Map</small><strong>${escapeUi(bestMap.map)}</strong><p>${number(bestMap.winrate)}% Winrate · ${number(bestMap.matches)} Matches</p></article>` : "";
+    content.innerHTML = `<section class="deep-section-head"><div><span>Performance Highlights</span><h3>Bestleistungen der letzten ${state.analysisPeriod} Matches</h3></div></section><div class="highlight-grid">${bestMapCard}${highlights.map(([label, match, format, icon]) => `<a class="highlight-card" href="${escapeUi(safeHttp(match.matchUrl))}" target="_blank" rel="noopener noreferrer"><span>${icon}</span><small>${escapeUi(label)}</small><strong>${escapeUi(format(match))}</strong><p>${escapeUi(match.map || "Unknown")} · ${escapeUi(formatMatchDate(match.date))} · ${escapeUi(match.score || "—")}</p><b>Match öffnen ↗</b></a>`).join("") || '<p class="deep-empty">Keine Match-Highlights vorhanden.</p>'}</div>`;
   };
 
   const renderDeepDive = () => {
@@ -1455,6 +1414,7 @@
     state.deepDive.playerId = player.id;
     state.deepDive.tab = "overview";
     state.deepDive.matchPage = 1;
+    state.deepDive.teammatePage = 1;
     state.deepDive.map = "all";
     state.deepDive.result = "all";
     state.deepDive.query = "";
@@ -1462,7 +1422,8 @@
     state.deepDive.mapSortDirection = "desc";
     state.deepDive.trigger = document.activeElement;
     setText("deepDiveName", player.nickname || "Spieler-Analyse");
-    setText("deepDiveCountry", `${flagFor(player.country)} ${text(player.country).toUpperCase() || "INT"}`);
+    const country = document.getElementById("deepDiveCountry");
+    if (country) country.innerHTML = `${flagMarkup(player.country)}<span>${escapeUi(countryName(player.country))}</span>`;
     const avatar = document.getElementById("deepDiveAvatar");
     if (avatar) avatar.innerHTML = player.avatar ? `<img src="${escapeUi(safeHttp(player.avatar))}" alt="">` : escapeUi(text(player.nickname).slice(0, 1).toUpperCase());
     const meta = document.getElementById("deepDiveMeta");
@@ -1485,11 +1446,16 @@
     const modal = document.getElementById("playerDeepDive");
     if (!modal) return;
     modal.querySelectorAll("[data-deep-close]").forEach(button => button.addEventListener("click", closePlayerDeepDive));
-    modal.querySelectorAll("[data-deep-tab]").forEach(button => button.addEventListener("click", () => { state.deepDive.tab = button.dataset.deepTab || "overview"; renderDeepDive(); }));
+    modal.querySelectorAll("[data-deep-tab]").forEach(button => button.addEventListener("click", () => {
+      state.deepDive.tab = button.dataset.deepTab || "overview";
+      state.deepDive.teammatePage = 1;
+      renderDeepDive();
+    }));
     modal.querySelectorAll("[data-deep-period]").forEach(button => button.addEventListener("click", () => {
       const period = number(button.dataset.deepPeriod, 30);
       document.querySelector(`[data-analysis-period="${period}"]`)?.click();
       state.deepDive.matchPage = 1;
+      state.deepDive.teammatePage = 1;
       renderDeepDive();
     }));
     document.addEventListener("keydown", event => {
@@ -1507,6 +1473,8 @@
     else void renderComparison();
   };
 
+  createComparisonChips();
+  waitForCharts();
   upgradeInterfaceIcons();
   document.getElementById("dashboard-toast")?.remove();
   setupRows();
@@ -1517,8 +1485,5 @@
   updateDiffs();
   sortRows();
   renderPeriodAwards();
-  createComparisonChips();
-  renderSynergies();
-  waitForCharts();
 
 })();

@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="vendor/chart.min.js" defer></script>
   <link rel="stylesheet" href="tailwind.generated.css">
-  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="dashboard.css?v=<!-- INSERT_ASSET_VERSION -->">
 </head>
 <body>
   <a class="skip-link" href="#leaderboard">Zum Ranking springen</a>
@@ -82,7 +82,7 @@
       <div>
         <span>Analysezeitraum</span>
         <strong id="analysis-period-copy">Letzte 30 Matches</strong>
-        <small>Gilt für Awards, Spieler-Details, ELO-Vergleich und Team-Synergien.</small>
+        <small>Gilt für Awards, Spieler-Details und den ELO-Vergleich.</small>
       </div>
       <div class="analysis-period-control" role="group" aria-label="Anzahl der zu analysierenden Matches">
         <button class="analysis-period active" type="button" data-analysis-period="30" aria-pressed="true">30</button>
@@ -186,16 +186,6 @@
         </div>
         <div class="comparison-metrics" id="comparison-metrics" aria-live="polite"></div>
 
-        <section class="synergy-panel" aria-labelledby="synergy-title">
-          <div class="synergy-head">
-            <div>
-              <p class="kicker">Team Chemistry</p>
-              <h3 id="synergy-title">Team-Synergien</h3>
-            </div>
-            <p id="synergy-period-label">Gemeinsame Matches und Winrate auf Basis der letzten 30 Matches je Spieler.</p>
-          </div>
-          <div class="synergy-grid" id="synergy-grid"></div>
-        </section>
         <p class="last-update">Last Update: <time><!-- INSERT_LAST_UPDATED --></time></p>
       </div>
     </section>
@@ -247,6 +237,6 @@
   <script>window.ELO_DATA = null;</script>
   <!-- INSERT_HISTORY_DATA -->
   <!-- INSERT_COMPARISON_DATA -->
-  <script src="dashboard.js" defer></script>
+  <script src="dashboard.js?v=<!-- INSERT_ASSET_VERSION -->" defer></script>
 </body>
 </html>

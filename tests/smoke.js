@@ -19,7 +19,8 @@ for (const marker of [
   "INSERT_PLAYER_COUNT",
   "INSERT_AWARDS_SECTION",
   "INSERT_HISTORY_DATA",
-  "INSERT_COMPARISON_DATA"
+  "INSERT_COMPARISON_DATA",
+  "INSERT_ASSET_VERSION"
 ]) {
   assert.match(template, new RegExp(marker), `Template marker ${marker} is missing`);
   assert.doesNotMatch(generated, new RegExp(marker), `Generated page still contains ${marker}`);
@@ -27,10 +28,10 @@ for (const marker of [
 
 assert.match(generated, /id="playerTableBody"/);
 assert.match(generated, /class="player-row/);
-assert.match(generated, /src="dashboard\.js"/);
+assert.match(generated, /src="dashboard\.js(?:\?v=[^"]+)?"/);
 assert.match(generated, /src="vendor\/chart\.min\.js"/);
 assert.doesNotMatch(generated, /cdn\.jsdelivr\.net\/npm\/chart\.js/);
-assert.match(generated, /href="dashboard\.css"/);
+assert.match(generated, /href="dashboard\.css(?:\?v=[^"]+)?"/);
 assert.doesNotMatch(generated, /Crew Ranking/);
 assert.match(generated, />Baiter</);
 assert.match(generated, /class="award-icon"/);
@@ -40,7 +41,7 @@ assert.match(generated, /Dashboard by <a [^>]*>sha<\/a>/);
 assert.match(generated, /id="formSort"/);
 assert.match(generated, /id="global-insights"/);
 assert.match(generated, /id="comparison-metrics"/);
-assert.match(generated, /id="synergy-grid"/);
+assert.doesNotMatch(template, /id="synergy-grid"|Team-Synergien/);
 assert.equal(fs.statSync(path.join(root, "vendor", "chart.min.js")).size > 100000, true);
 assert.match(dashboardScript, /toMatchSeries/);
 assert.match(dashboardScript, /cubicInterpolationMode: "monotone"/);
@@ -70,7 +71,7 @@ assert.match(apiScript, /from=0&limit=/);
 assert.match(dashboardScript, /matchTooltipCallbacks/);
 assert.match(dashboardScript, /Klicken, um das FACEIT-Match zu öffnen/);
 assert.match(dashboardScript, /renderComparisonMetrics/);
-assert.match(dashboardScript, /renderSynergies/);
+assert.doesNotMatch(dashboardScript, /renderSynergies|synergy-grid/);
 assert.match(dashboardScript, /loadPlayerDetail/);
 assert.match(dashboardScript, /renderDeepMatches/);
 assert.match(dashboardScript, /renderDeepMaps/);
@@ -78,11 +79,21 @@ assert.doesNotMatch(dashboardScript, /navigator\.share|navigator\.clipboard|data
 assert.doesNotMatch(dashboardScript, /state\.selectedPlayers\.add\(player\.id\)/);
 assert.doesNotMatch(dashboardScript, /if \(index < 3\)/);
 assert.match(dashboardScript, /Wähle mindestens einen Spieler für den ELO-Vergleich aus/);
-assert.match(template, /letzten 30 Matches je Spieler/);
+assert.match(template, /ELO-Verlauf vergleichen/);
 assert.doesNotMatch(template, /dashboard-toast/);
 assert.match(dashboardScript, /upgradeInterfaceIcons/);
 assert.match(dashboardScript, /formWins/);
 assert.match(dashboardCss, /\.chart-fallback\[hidden\]/);
+assert.match(dashboardCss, /\.deep-chart-empty\[hidden\]/);
+assert.doesNotMatch(dashboardCss, /backdrop-filter:/);
+assert.match(dashboardScript, /animation: false/);
+assert.match(dashboardScript, /data-teammate-page/);
+assert.match(dashboardScript, /insight\.type !== "map"/);
+assert.match(template, /dashboard\.js\?v=<!-- INSERT_ASSET_VERSION -->/);
+assert.match(template, /dashboard\.css\?v=<!-- INSERT_ASSET_VERSION -->/);
+assert.match(dashboardScript, /flagcdn\.com/);
+assert.doesNotMatch(dashboardCss, /\.synergy-(?:panel|grid|card|head)/);
+assert.ok(dashboardScript.lastIndexOf("createComparisonChips();") < dashboardScript.lastIndexOf("setupRows();"));
 assert.match(dashboardCss, /\.sort-control select option/);
 
 const awardHtml = renderer.renderAwards({
@@ -104,7 +115,7 @@ const templatePath = path.join(tempDir, "template.html");
 const outputPath = path.join(tempDir, "output.html");
 fs.writeFileSync(
   templatePath,
-  "<!-- INSERT_ELO_TABLE_HERE --><!-- INSERT_LAST_UPDATED --><!-- INSERT_PLAYER_COUNT --><!-- INSERT_AWARDS_SECTION --><!-- INSERT_HISTORY_DATA --><!-- INSERT_COMPARISON_DATA -->"
+  "<!-- INSERT_ELO_TABLE_HERE --><!-- INSERT_LAST_UPDATED --><!-- INSERT_PLAYER_COUNT --><!-- INSERT_AWARDS_SECTION --><!-- INSERT_HISTORY_DATA --><!-- INSERT_COMPARISON_DATA --><!-- INSERT_ASSET_VERSION -->"
 );
 
 const maliciousName = '<script>alert("xss")</script>';
@@ -113,6 +124,7 @@ renderer.render(templatePath, outputPath, {
     playerId: "player-1",
     nickname: maliciousName,
     avatar: "javascript:alert(1)",
+    country: "de",
     elo: 1500,
     level: 5,
     faceitUrl: "javascript:alert(1)",
@@ -141,10 +153,13 @@ assert.match(rendered, /&lt;script&gt;/);
 assert.match(rendered, /data-form="60"/);
 assert.match(rendered, />3\/5</);
 assert.match(rendered, /class="ranking-card"/);
+assert.match(rendered, /flagcdn\.com\/24x18\/de\.png/);
+assert.doesNotMatch(rendered, />DE<\/span>/);
 assert.match(rendered, /data-card-stat="form"/);
 assert.match(rendered, /"periods":\{"30":/);
 assert.doesNotMatch(rendered, /"matchHistory":/);
 assert.doesNotMatch(rendered, /Ansicht teilen|data-share-player/);
+assert.doesNotMatch(rendered, /INSERT_ASSET_VERSION/);
 const playerDetailPath = path.join(tempDir, "data", "players", "player-1.json");
 assert.equal(fs.existsSync(playerDetailPath), true);
 const playerDetail = JSON.parse(fs.readFileSync(playerDetailPath, "utf8"));
@@ -182,7 +197,7 @@ const analyzedStats = stats.calculatePlayerStats(
       match_id: "1-match-b",
       finished_at: 1767265200,
       results: { winner: "faction1" },
-      teams: { faction1: { players: [{ player_id: "player-1", nickname: "One" }, { player_id: "player-2", nickname: "Two" }] } }
+      teams: { faction1: { players: [{ player_id: "player-1", nickname: "One" }, { player_id: "player-2", nickname: "Two", avatar: "https://example.com/two.jpg" }] } }
     }
   ],
   {
@@ -205,6 +220,7 @@ assert.equal(analyzedStats.recent.clutches, 1);
 assert.equal(analyzedStats.matchHistory[0].tripleKills, 1);
 assert.equal(analyzedStats.mapPerformance[0].adr, "88.0");
 assert.equal(analyzedStats.mapPerformance[0].entrySuccess, 63);
+assert.equal(analyzedStats.teammates[0].avatar, "https://example.com/two.jpg");
 assert.equal(
   stats.calculatePlayerStats("player-1", [], {}, [], 60).dataQuality.requestedMatches,
   60

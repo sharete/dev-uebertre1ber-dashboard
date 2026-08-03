@@ -113,6 +113,9 @@ class StatsCalculator {
                                 url: (p.faceit_url || "").replace("{lang}", "de"),
                                 avatar: p.avatar
                             };
+                        } else {
+                            if (!teammateInfo[p.player_id].avatar && p.avatar) teammateInfo[p.player_id].avatar = p.avatar;
+                            if (!teammateInfo[p.player_id].url && p.faceit_url) teammateInfo[p.player_id].url = p.faceit_url.replace("{lang}", "de");
                         }
                     }
                     break;
