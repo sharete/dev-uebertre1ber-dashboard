@@ -56,6 +56,7 @@ jobs:
           git config user.email "faceit-bot@localhost"
           git add index.html
           git add data/*.json || echo "Keine JSON-Dateien zum Hinzufügen"
+          git add data/players/*.json || echo "Keine Spielerdateien zum Hinzufügen"
           git diff --cached --quiet && exit 0
           git commit -m "chore: FACEIT-Daten aktualisieren ($(date -u +'%Y-%m-%d %H:%M UTC'))"
           git push

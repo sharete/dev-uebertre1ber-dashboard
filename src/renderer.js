@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -18,6 +19,12 @@ const normalizeUrl = (value) => {
 const safeUrl = (value) => escapeHtml(normalizeUrl(value));
 
 const serializeForScript = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
+
+const countryFlag = value => {
+  const code = String(value || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return '🌐';
+  return String.fromCodePoint(...[...code].map(letter => 127397 + letter.charCodeAt(0)));
+};
 
 const iconSvg = (name, className = 'ui-icon') => {
   const paths = {
@@ -39,7 +46,7 @@ class Renderer {
   render(templatePath, outputPath, data) {
     const { players, lastUpdated, historyData, awards } = data;
 
-    const rows = players.map(p => this.renderPlayer(p)).join('\n');
+    const rows = players.map(p => this.renderRankingCard(p)).join('\n');
 
     let template = fs.readFileSync(templatePath, 'utf-8');
     template = template.replace("<!-- INSERT_ELO_TABLE_HERE -->", rows);
@@ -50,18 +57,65 @@ class Renderer {
     const awardsHtml = this.renderAwards(awards);
     template = template.replace("<!-- INSERT_AWARDS_SECTION -->", awardsHtml);
 
-    // Inject comparison chart data
+    const playerDataDirectory = path.join(path.dirname(outputPath), 'data', 'players');
+    fs.mkdirSync(playerDataDirectory, { recursive: true });
+
+    const detailPeriod = (period, periodStats) => ({
+      requestedMatches: Number(period) || 30,
+      recent: periodStats?.recent || {},
+      last5: periodStats?.last5 || [],
+      streak: periodStats?.streak || { type: 'none', count: 0 },
+      mapPerformance: periodStats?.mapPerformance || [],
+      personalBests: periodStats?.personalBests || {},
+      dataQuality: periodStats?.dataQuality || {},
+      insights: periodStats?.insights || [],
+      teammates: periodStats?.teammates || []
+    });
+
+    for (const player of players) {
+      const period100 = player.periodStats?.['100'] || player.stats || {};
+      const detailPayload = {
+        version: 1,
+        lastUpdated,
+        profile: {
+          id: player.playerId,
+          nickname: player.nickname,
+          avatar: normalizeUrl(player.avatar),
+          faceitUrl: normalizeUrl(player.faceitUrl),
+          country: player.country || '',
+          region: player.region || '',
+          memberships: player.memberships || [],
+          steamId: player.steamId || '',
+          createdAt: player.createdAt || null,
+          elo: Number.parseInt(player.elo) || 0,
+          level: Number.parseInt(player.level) || 0,
+          lifetimeWinrate: player.winrate || '0%',
+          lifetimeMatches: Number.parseInt(String(player.matches).replace(/,/g, '')) || 0,
+          lastMatch: player.lastMatch || '',
+          lastMatchTs: Number(player.lastMatchTs) || 0
+        },
+        matches: period100.matchHistory || [],
+        history: period100.eloHistory || [],
+        periods: Object.fromEntries(['30', '60', '100'].map(period => [
+          period,
+          detailPeriod(period, player.periodStats?.[period] || player.stats)
+        ]))
+      };
+      const fileName = `${String(player.playerId).replace(/[^a-z0-9_-]/gi, '_')}.json`;
+      fs.writeFileSync(path.join(playerDataDirectory, fileName), JSON.stringify(detailPayload));
+    }
+
+    // Inject compact comparison data. Heavy match/map data lives in lazy player JSON files.
     const serializePeriod = (period, periodStats) => ({
       requestedMatches: Number(period) || 30,
       recent: periodStats?.recent || {},
       last5: periodStats?.last5 || [],
       streak: periodStats?.streak || { type: "none", count: 0 },
-      mapPerformance: periodStats?.mapPerformance || [],
-      matchHistory: periodStats?.matchHistory || [],
       personalBests: periodStats?.personalBests || {},
       dataQuality: periodStats?.dataQuality || {},
       insights: periodStats?.insights || [],
       teammates: periodStats?.teammates || [],
+      matchIds: (periodStats?.matchHistory || []).map(match => match.matchId).filter(Boolean),
       history: (periodStats?.eloHistory || []).slice(-Number(period) || -30)
     });
     const comparisonData = players.map(p => ({
@@ -69,12 +123,13 @@ class Renderer {
       nickname: p.nickname,
       avatar: normalizeUrl(p.avatar),
       faceitUrl: normalizeUrl(p.faceitUrl),
+      country: p.country || '',
+      region: p.region || '',
       elo: Number.parseInt(p.elo) || 0,
       winrate: Number.parseFloat(p.winrate) || 0,
       level: Number.parseInt(p.level) || 0,
       recent: p.stats.recent || {},
       last5: p.stats.last5 || [],
-      matchHistory: p.stats.matchHistory || [],
       personalBests: p.stats.personalBests || {},
       dataQuality: p.stats.dataQuality || {},
       insights: p.stats.insights || [],
@@ -142,6 +197,57 @@ class Renderer {
       ${card("Win Streak", awards.longestStreak.name, `${awards.longestStreak.value}W`, "flame", "orange")}
       ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeaths.value) ? awards.lowestDeaths.value : 0} Deaths`, "shield", "cyan")}
     </div>`;
+  }
+
+  renderRankingCard(p) {
+    const recent = p.stats?.recent || {};
+    const last5 = p.stats?.last5 || [];
+    const streak = p.stats?.streak || { type: 'none', count: 0 };
+    const quality = p.stats?.dataQuality || { status: 'stale', label: 'Keine Matchdaten' };
+    const wins = last5.filter(result => result === 'W').length;
+    const formPercent = last5.length ? Math.round(wins / last5.length * 100) : 0;
+    const streakLabel = streak.count ? `${streak.count}${streak.type === 'win' ? 'W' : 'L'}` : '—';
+    const nickname = escapeHtml(p.nickname);
+    const initial = escapeHtml(String(p.nickname || '?').charAt(0).toUpperCase());
+    const avatar = p.avatar
+      ? `<span class="ranking-avatar"><span>${initial}</span><img src="${safeUrl(p.avatar)}" alt="" loading="lazy" onerror="this.remove()"></span>`
+      : `<span class="ranking-avatar"><span>${initial}</span></span>`;
+    const formDots = last5.map(result => `<i class="form-dot ${result === 'W' ? 'win' : 'loss'}" aria-label="${result === 'W' ? 'Sieg' : 'Niederlage'}"></i>`).join('');
+
+    return `<tr class="player-row ranking-player-card"
+      data-player-id="${escapeHtml(p.playerId)}" data-elo="${Number(p.elo) || 0}"
+      data-nickname="${nickname}" data-winrate="${Number.parseFloat(p.winrate) || 0}"
+      data-matches="${Number.parseInt(String(p.matches).replace(/,/g, '')) || 0}"
+      data-level="${Number(p.level) || 0}" data-last="${escapeHtml(p.lastMatch)}"
+      data-last-ts="${Number(p.lastMatchTs) || 0}" data-kd="${Number.parseFloat(recent.kd) || 0}"
+      data-adr="${Number.parseFloat(recent.adr) || 0}" data-form="${formPercent}"
+      data-quality="${escapeHtml(quality.status)}" data-peak="${Number(p.stats?.personalBests?.peakElo) || Number(p.elo) || 0}"
+      data-streak="${escapeHtml(streakLabel)}" data-streak-type="${escapeHtml(streak.type)}">
+      <td colspan="7">
+        <article class="ranking-card">
+          <div class="ranking-card-rank" aria-label="Ranking"><span>—</span><small>Rang</small></div>
+          ${avatar}
+          <div class="ranking-identity">
+            <div class="ranking-country"><span aria-hidden="true">${countryFlag(p.country)}</span><span>${escapeHtml(String(p.country || 'INT').toUpperCase())}</span></div>
+            <a class="nickname-link" href="${safeUrl(p.faceitUrl)}" target="_blank" rel="noopener noreferrer">${nickname}</a>
+            <div class="ranking-meta"><img src="icons/levels/level_${Math.max(1, Math.min(10, Number(p.level) || 1))}_icon.png" alt="FACEIT Level ${escapeHtml(p.level)}"><span>Level ${escapeHtml(p.level)}</span><span class="data-status status-${escapeHtml(quality.status)}">${escapeHtml(quality.label)}</span></div>
+          </div>
+          <div class="ranking-stat-grid">
+            <span><small>K/D</small><strong data-card-stat="kd">${escapeHtml(recent.kd || '0.00')}</strong></span>
+            <span><small>ADR</small><strong data-card-stat="adr">${escapeHtml(recent.adr || '0.0')}</strong></span>
+            <span><small>Winrate</small><strong data-card-stat="winrate">${Number(recent.winratePct ?? Number.parseFloat(p.winrate)) || 0}%</strong></span>
+            <span><small>Headshots</small><strong data-card-stat="hs">${escapeHtml(recent.hsPercent || '0%')}</strong></span>
+            <span><small>Form · 5</small><strong data-card-stat="form">${wins}/${last5.length || 0}</strong><span class="player-form">${formDots}</span></span>
+            <span><small>Serie</small><strong data-card-stat="streak">${escapeHtml(streakLabel)}</strong></span>
+          </div>
+          <div class="ranking-elo">
+            <small>Current ELO</small><strong class="elo-now">${Number(p.elo) || 0}</strong><span class="elo-diff">±0</span>
+            <span class="last-match-cell" data-ts="${Number(p.lastMatchTs) || 0}">${escapeHtml(p.lastMatch)}</span>
+          </div>
+          <button class="open-player-deep-dive" type="button" aria-label="${nickname} analysieren"><span>Analyse</span><b aria-hidden="true">→</b></button>
+        </article>
+      </td>
+    </tr>`;
   }
 
   renderPlayer(p) {

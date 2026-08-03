@@ -55,7 +55,14 @@ assert.match(dashboardScript, /renderPeriodAwards/);
 assert.match(template, /data-analysis-period="30"/);
 assert.match(template, /data-analysis-period="60"/);
 assert.match(template, /data-analysis-period="100"/);
+assert.match(template, /id="playerDeepDive"/);
+assert.match(template, /data-deep-tab="matches"/);
+assert.match(template, /data-deep-tab="maps"/);
+assert.match(template, /data-deep-tab="teammates"/);
+assert.match(template, /data-deep-tab="highlights"/);
 assert.match(dashboardCss, /\.analysis-period-control/);
+assert.match(dashboardCss, /\.ranking-card/);
+assert.match(dashboardCss, /\.deep-dive-panel/);
 assert.match(updaterScript, /ANALYSIS_PERIODS = \[30, 60, 100\]/);
 assert.match(updaterScript, /periodStats/);
 assert.match(apiScript, /Math\.min\(100/);
@@ -64,6 +71,9 @@ assert.match(dashboardScript, /matchTooltipCallbacks/);
 assert.match(dashboardScript, /Klicken, um das FACEIT-Match zu öffnen/);
 assert.match(dashboardScript, /renderComparisonMetrics/);
 assert.match(dashboardScript, /renderSynergies/);
+assert.match(dashboardScript, /loadPlayerDetail/);
+assert.match(dashboardScript, /renderDeepMatches/);
+assert.match(dashboardScript, /renderDeepMaps/);
 assert.doesNotMatch(dashboardScript, /navigator\.share|navigator\.clipboard|data-share-player/);
 assert.doesNotMatch(dashboardScript, /state\.selectedPlayers\.add\(player\.id\)/);
 assert.doesNotMatch(dashboardScript, /if \(index < 3\)/);
@@ -130,10 +140,17 @@ assert.doesNotMatch(rendered, /<script>alert/);
 assert.match(rendered, /&lt;script&gt;/);
 assert.match(rendered, /data-form="60"/);
 assert.match(rendered, />3\/5</);
-assert.match(rendered, /60% Siege/);
-assert.match(rendered, /Letzte 30 Matches/);
+assert.match(rendered, /class="ranking-card"/);
+assert.match(rendered, /data-card-stat="form"/);
 assert.match(rendered, /"periods":\{"30":/);
+assert.doesNotMatch(rendered, /"matchHistory":/);
 assert.doesNotMatch(rendered, /Ansicht teilen|data-share-player/);
+const playerDetailPath = path.join(tempDir, "data", "players", "player-1.json");
+assert.equal(fs.existsSync(playerDetailPath), true);
+const playerDetail = JSON.parse(fs.readFileSync(playerDetailPath, "utf8"));
+assert.equal(playerDetail.profile.id, "player-1");
+assert.ok(Array.isArray(playerDetail.matches));
+assert.ok(playerDetail.periods["100"]);
 fs.rmSync(tempDir, { recursive: true, force: true });
 
 const normalizedStats = stats.calculatePlayerStats("player-1", [], {}, [
@@ -169,8 +186,8 @@ const analyzedStats = stats.calculatePlayerStats(
     }
   ],
   {
-    "1-match-a": { __mapName: "Mirage", __score: "13 - 8", "player-1": { Kills: 20, Deaths: 10, Assists: 5, ADR: 92, Headshots: 10 } },
-    "1-match-b": { __mapName: "Mirage", __score: "13 - 10", "player-1": { Kills: 18, Deaths: 12, Assists: 4, ADR: 84, Headshots: 8 } }
+    "1-match-a": { __mapName: "Mirage", __score: "13 - 8", "player-1": { Kills: 20, Deaths: 10, Assists: 5, ADR: 92, Headshots: 10, __rounds: 21, "Entry Wins": 3, "Entry Count": 4, "Clutch Kills": 1, "Double Kills": 2, "Triple Kills": 1, "Utility Damage": 84 } },
+    "1-match-b": { __mapName: "Mirage", __score: "13 - 10", "player-1": { Kills: 18, Deaths: 12, Assists: 4, ADR: 84, Headshots: 8, __rounds: 23, "Entry Wins": 2, "Entry Count": 4, "Clutch Kills": 0, "Double Kills": 1, "Utility Damage": 40 } }
   },
   [
     { date: 1767265200, elo: 1500, elo_delta: 25, matchId: "1-match-b", i1: "de_mirage", i10: "1", i18: "13 - 10" },
@@ -183,6 +200,11 @@ assert.equal(analyzedStats.personalBests.longestWinStreak, 2);
 assert.equal(analyzedStats.personalBests.bestMap.map, "Mirage");
 assert.equal(analyzedStats.dataQuality.matchCoverage, 100);
 assert.equal(analyzedStats.dataQuality.requestedMatches, 2);
+assert.equal(analyzedStats.recent.entrySuccess, 63);
+assert.equal(analyzedStats.recent.clutches, 1);
+assert.equal(analyzedStats.matchHistory[0].tripleKills, 1);
+assert.equal(analyzedStats.mapPerformance[0].adr, "88.0");
+assert.equal(analyzedStats.mapPerformance[0].entrySuccess, 63);
 assert.equal(
   stats.calculatePlayerStats("player-1", [], {}, [], 60).dataQuality.requestedMatches,
   60

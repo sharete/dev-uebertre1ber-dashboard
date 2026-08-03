@@ -36,6 +36,7 @@ class StatsCalculator {
             return this._emptyStats();
         }
         let kills = 0, deaths = 0, assists = 0, adrTotal = 0, hs = 0, count = 0, rounds = 0;
+        let entryWins = 0, entryCount = 0, clutches = 0, multikills = 0, utilityDamage = 0;
 
         // For teammates analysis
         const teammateCounts = {};
@@ -65,13 +66,23 @@ class StatsCalculator {
                 adrTotal += +playerStats.ADR || 0;
                 hs += +playerStats.Headshots || 0;
                 if (typeof playerStats.__rounds === "number") rounds += playerStats.__rounds;
+                entryWins += +playerStats["Entry Wins"] || +playerStats["First Kills"] || 0;
+                entryCount += +playerStats["Entry Count"] || 0;
+                clutches += +playerStats["Clutch Kills"] || 0;
+                multikills += (+playerStats["Double Kills"] || 0) + (+playerStats["Triple Kills"] || 0)
+                    + (+playerStats["Quadro Kills"] || 0) + (+playerStats["Penta Kills"] || 0);
+                utilityDamage += +playerStats["Utility Damage"] || 0;
                 count++;
             }
 
             // Map Performance
             const mapName = stats.__mapName || "Unknown";
             if (!mapData[mapName]) {
-                mapData[mapName] = { wins: 0, losses: 0, kills: 0, deaths: 0, matches: 0 };
+                mapData[mapName] = {
+                    wins: 0, losses: 0, kills: 0, deaths: 0, assists: 0, matches: 0,
+                    adrTotal: 0, headshots: 0, rounds: 0, entryWins: 0, entryCount: 0,
+                    clutches: 0, multikills: 0, utilityDamage: 0, damage: 0
+                };
             }
 
             // Determine win/loss for this match
@@ -130,7 +141,22 @@ class StatsCalculator {
                     assists: +playerStats.Assists || 0,
                     adr: +playerStats.ADR || 0,
                     hsPercent: playerStats["Headshots %"] || (mKills ? Math.round((+playerStats.Headshots || 0) / mKills * 100) : 0),
-                    mvps: +playerStats.MVPs || 0
+                    mvps: +playerStats.MVPs || 0,
+                    rounds: +playerStats.__rounds || 0,
+                    kr: +playerStats["K/R Ratio"] || (+playerStats.__rounds ? mKills / +playerStats.__rounds : 0),
+                    damage: +playerStats.Damage || 0,
+                    entryKills: +playerStats["First Kills"] || 0,
+                    entryWins: +playerStats["Entry Wins"] || +playerStats["First Kills"] || 0,
+                    entryCount: +playerStats["Entry Count"] || 0,
+                    entrySuccess: +playerStats["Match Entry Success Rate"] || 0,
+                    clutches: +playerStats["Clutch Kills"] || 0,
+                    doubleKills: +playerStats["Double Kills"] || 0,
+                    tripleKills: +playerStats["Triple Kills"] || 0,
+                    quadKills: +playerStats["Quadro Kills"] || 0,
+                    pentaKills: +playerStats["Penta Kills"] || 0,
+                    utilityDamage: +playerStats["Utility Damage"] || 0,
+                    enemiesFlashed: +playerStats["Enemies Flashed"] || 0,
+                    sniperKills: +playerStats["Sniper Kills"] || 0
                 });
             }
 
@@ -143,6 +169,17 @@ class StatsCalculator {
             if (playerStats) {
                 mapData[mapName].kills += +playerStats.Kills || 0;
                 mapData[mapName].deaths += +playerStats.Deaths || 0;
+                mapData[mapName].assists += +playerStats.Assists || 0;
+                mapData[mapName].adrTotal += +playerStats.ADR || 0;
+                mapData[mapName].headshots += +playerStats.Headshots || 0;
+                mapData[mapName].rounds += +playerStats.__rounds || 0;
+                mapData[mapName].entryWins += +playerStats["Entry Wins"] || +playerStats["First Kills"] || 0;
+                mapData[mapName].entryCount += +playerStats["Entry Count"] || 0;
+                mapData[mapName].clutches += +playerStats["Clutch Kills"] || 0;
+                mapData[mapName].multikills += (+playerStats["Double Kills"] || 0) + (+playerStats["Triple Kills"] || 0)
+                    + (+playerStats["Quadro Kills"] || 0) + (+playerStats["Penta Kills"] || 0);
+                mapData[mapName].utilityDamage += +playerStats["Utility Damage"] || 0;
+                mapData[mapName].damage += +playerStats.Damage || 0;
             }
         }
 
@@ -158,7 +195,13 @@ class StatsCalculator {
             hsPercent: kills ? Math.round((hs / kills) * 100) + "%" : "0%",
             kr: rounds ? (kills / rounds).toFixed(2) : "0.00",
             matches: count,
-            winratePct: count ? Math.round((wins / count) * 100) : 0
+            winratePct: count ? Math.round((wins / count) * 100) : 0,
+            entryWins,
+            entryCount,
+            entrySuccess: entryCount ? Math.round(entryWins / entryCount * 100) : 0,
+            clutches,
+            multikills,
+            utilityDamage
         };
 
         // Win/Loss Streak (from most recent match)
@@ -184,7 +227,18 @@ class StatsCalculator {
                 losses: d.losses,
                 matches: d.matches,
                 winrate: d.matches ? Math.round((d.wins / d.matches) * 100) : 0,
-                kd: d.deaths ? (d.kills / d.deaths).toFixed(2) : "0.00"
+                kd: d.deaths ? (d.kills / d.deaths).toFixed(2) : "0.00",
+                adr: d.matches ? (d.adrTotal / d.matches).toFixed(1) : "0.0",
+                hsPercent: d.kills ? Math.round(d.headshots / d.kills * 100) : 0,
+                kr: d.rounds ? (d.kills / d.rounds).toFixed(2) : "0.00",
+                avgKills: d.matches ? (d.kills / d.matches).toFixed(1) : "0.0",
+                avgDeaths: d.matches ? (d.deaths / d.matches).toFixed(1) : "0.0",
+                avgAssists: d.matches ? (d.assists / d.matches).toFixed(1) : "0.0",
+                kdDiff: d.matches ? ((d.kills - d.deaths) / d.matches).toFixed(1) : "0.0",
+                entrySuccess: d.entryCount ? Math.round(d.entryWins / d.entryCount * 100) : 0,
+                clutches: d.clutches,
+                multikills: d.multikills,
+                utilityDamage: d.utilityDamage
             }))
             .sort((a, b) => b.matches - a.matches);
 
@@ -323,7 +377,7 @@ class StatsCalculator {
     /** Returns an empty stats object for error/edge cases */
     _emptyStats() {
         return {
-            recent: { kills: 0, assists: 0, deaths: 0, wins: 0, kd: "0.00", adr: "0.0", hsPercent: "0%", kr: "0.00", matches: 0, winratePct: 0 },
+            recent: { kills: 0, assists: 0, deaths: 0, wins: 0, kd: "0.00", adr: "0.0", hsPercent: "0%", kr: "0.00", matches: 0, winratePct: 0, entryWins: 0, entryCount: 0, entrySuccess: 0, clutches: 0, multikills: 0, utilityDamage: 0 },
             teammates: [],
             eloHistory: [],
             matchHistory: [],

@@ -5,6 +5,8 @@ node_modules
 *.bak
 .env
 data/*.json
+!data/players/
+!data/players/*.json
 !data/discord_state.json
 !data/history-cache.json
 !data/match_cache.json

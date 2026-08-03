@@ -201,6 +201,41 @@
     </section>
   </main>
 
+  <div class="player-deep-dive" id="playerDeepDive" hidden>
+    <button class="deep-dive-backdrop" type="button" data-deep-close aria-label="Analyse schließen"></button>
+    <section class="deep-dive-panel" role="dialog" aria-modal="true" aria-labelledby="deepDiveName">
+      <header class="deep-dive-header">
+        <div class="deep-dive-player">
+          <span class="deep-dive-avatar" id="deepDiveAvatar"></span>
+          <div>
+            <span class="deep-dive-country" id="deepDiveCountry"></span>
+            <h2 id="deepDiveName">Spieler-Analyse</h2>
+            <div class="deep-dive-meta" id="deepDiveMeta"></div>
+          </div>
+        </div>
+        <div class="deep-dive-actions">
+          <div class="deep-dive-periods" role="group" aria-label="Analysezeitraum im Spielerprofil">
+            <button type="button" data-deep-period="30">30</button>
+            <button type="button" data-deep-period="60">60</button>
+            <button type="button" data-deep-period="100">100</button>
+          </div>
+          <a id="deepDiveFaceit" href="#" target="_blank" rel="noopener noreferrer">FACEIT ↗</a>
+          <button class="deep-dive-close" type="button" data-deep-close aria-label="Analyse schließen">×</button>
+        </div>
+      </header>
+      <nav class="deep-dive-tabs" role="tablist" aria-label="Spielerbereiche">
+        <button type="button" role="tab" data-deep-tab="overview" aria-selected="true">Übersicht</button>
+        <button type="button" role="tab" data-deep-tab="matches" aria-selected="false">Matches</button>
+        <button type="button" role="tab" data-deep-tab="maps" aria-selected="false">Maps</button>
+        <button type="button" role="tab" data-deep-tab="teammates" aria-selected="false">Teammates</button>
+        <button type="button" role="tab" data-deep-tab="highlights" aria-selected="false">Highlights</button>
+      </nav>
+      <div class="deep-dive-content" id="deepDiveContent" tabindex="-1">
+        <div class="deep-dive-loading"><span></span><p>Spielerdaten werden geladen …</p></div>
+      </div>
+    </section>
+  </div>
+
   <footer class="site-footer">
     <div class="shell footer-inner">
       <img class="footer-logo" src="icons/levels/uebertreiber_logo.png" alt="Uebertr1eber">
