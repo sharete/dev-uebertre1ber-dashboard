@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -84,7 +85,15 @@ class Renderer {
     template = template.replace("<!-- INSERT_ELO_TABLE_HERE -->", rows);
     template = template.replaceAll("<!-- INSERT_LAST_UPDATED -->", lastUpdated);
     template = template.replaceAll("<!-- INSERT_PLAYER_COUNT -->", players.length);
-    template = template.replaceAll("<!-- INSERT_ASSET_VERSION -->", encodeURIComponent(String(lastUpdated || '1')));
+    const assetRoot = path.dirname(outputPath);
+    const assetVersion = crypto.createHash('sha256')
+      .update(['dashboard.css', 'dashboard.js'].map(file => {
+        const assetPath = path.join(assetRoot, file);
+        return fs.existsSync(assetPath) ? fs.readFileSync(assetPath) : file;
+      }).join('|'))
+      .digest('hex')
+      .slice(0, 12);
+    template = template.replaceAll("<!-- INSERT_ASSET_VERSION -->", assetVersion);
 
     // Inject awards section
     const awardsHtml = this.renderAwards(awards);

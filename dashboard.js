@@ -1283,7 +1283,7 @@
     state.deepDive.chart = new Chart(canvas, {
       type: "line",
       data: { labels: history.map((_, index) => index + 1), datasets: [{ data: history.map(point => number(point.elo)), borderColor: "#ff642e", backgroundColor: "rgba(255,100,46,.12)", fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, tension: .34, cubicInterpolationMode: "monotone" }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { grid: { color: "rgba(255,255,255,.06)" }, ticks: { maxTicksLimit: 5 } } } }
+      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, ticks: { color: "#6f6b64", maxTicksLimit: 8 } }, y: { grid: { color: "rgba(17,16,15,.12)" }, ticks: { color: "#6f6b64", maxTicksLimit: 5 } } } }
     });
   };
 
