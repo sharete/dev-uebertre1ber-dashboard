@@ -258,10 +258,11 @@ class StatsCalculator {
                 const date = rawDate > 1e12 ? Math.floor(rawDate / 1000) : Math.floor(rawDate);
                 const elo = parseInt(item.elo ?? item.i20);
                 const rawDiff = item.elo_delta ?? item.eloDiff;
+                const parsedDiff = rawDiff !== undefined && rawDiff !== "" ? parseInt(rawDiff) : NaN;
                 const normalized = {
                     date,
                     elo,
-                    eloDiff: rawDiff !== undefined && rawDiff !== "" ? parseInt(rawDiff) : undefined
+                    eloDiff: Number.isFinite(parsedDiff) ? parsedDiff : undefined
                 };
                 const matchId = item.matchId ?? item.match_id;
                 const map = item.map ?? item.i1;
@@ -283,17 +284,33 @@ class StatsCalculator {
             .filter((item, index, items) => index === 0 || item.date !== items[index - 1].date)
             .slice(-300);
 
-        // Match the detailed statistics with the closest ELO sample. FACEIT's two
-        // endpoints do not always use the exact same second for a completed match.
+        // Some FACEIT history responses expose only the ELO total after a match.
+        // Derive the missing delta from the preceding chronological sample so
+        // match rows remain useful even when `elo_delta` is omitted upstream.
+        for (let index = 1; index < eloHistory.length; index++) {
+            if (Number.isFinite(eloHistory[index].eloDiff)) continue;
+            const derivedDiff = eloHistory[index].elo - eloHistory[index - 1].elo;
+            if (Number.isFinite(derivedDiff)) eloHistory[index].eloDiff = derivedDiff;
+        }
+
+        // Prefer FACEIT's match ID. Locally captured fallback points have no ID,
+        // but use the exact completion timestamp; keep their tolerance narrow and
+        // consume each point once so one aggregate change is never shown twice.
+        const eloPointsByMatch = new Map(eloHistory.filter(point => point.matchId).map(point => [point.matchId, point]));
+        const claimedEloPoints = new Set();
         for (const match of detailedHistory) {
             const matchDate = Number(match.date);
-            const closest = eloHistory.reduce((best, point) => {
+            let matchedPoint = eloPointsByMatch.get(match.matchId);
+            const closest = matchedPoint ? null : eloHistory.reduce((best, point) => {
+                if (point.matchId || claimedEloPoints.has(point)) return best;
                 const distance = Math.abs(point.date - matchDate);
                 return !best || distance < best.distance ? { point, distance } : best;
             }, null);
-            if (closest && closest.distance <= 12 * 60 * 60) {
-                match.elo = closest.point.elo;
-                match.eloDiff = closest.point.eloDiff;
+            if (!matchedPoint && closest && closest.distance <= 5 * 60) matchedPoint = closest.point;
+            if (matchedPoint) {
+                claimedEloPoints.add(matchedPoint);
+                match.elo = matchedPoint.elo;
+                match.eloDiff = matchedPoint.eloDiff;
             }
         }
 

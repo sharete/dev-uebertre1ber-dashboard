@@ -167,7 +167,9 @@ async function processPlayer(playerId, historyCache) {
         );
         const periodStats = Object.fromEntries(ANALYSIS_PERIODS.map(period => {
             const periodHistory = history.items.slice(0, period);
-            const periodEloHistory = sortedEloHistory.slice(-period);
+            // Keep one baseline point so a missing FACEIT `elo_delta` can be
+            // reconstructed for the first match inside the selected period.
+            const periodEloHistory = sortedEloHistory.slice(-(period + 1));
             return [
                 String(period),
                 stats.calculatePlayerStats(playerId, periodHistory, matchStatsMap, periodEloHistory, period)

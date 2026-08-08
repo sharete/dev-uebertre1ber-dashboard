@@ -79,6 +79,7 @@ assert.match(dashboardCss, /\.ranking-table tbody\s*\{[^}]*grid-template-columns
 assert.match(dashboardCss, /\.primary-nav\s*\{[^}]*left:\s*50%[^}]*translateX\(-50%\)/);
 assert.match(updaterScript, /ANALYSIS_PERIODS = \[30, 60, 100\]/);
 assert.match(updaterScript, /periodStats/);
+assert.match(updaterScript, /slice\(-\(period \+ 1\)\)/);
 assert.match(apiScript, /Math\.min\(100/);
 assert.match(apiScript, /from=0&limit=/);
 assert.match(dashboardScript, /matchTooltipCallbacks/);
@@ -88,6 +89,7 @@ assert.match(dashboardScript, /squad-positive-form/);
 assert.match(dashboardScript, /performanceProfile/);
 assert.doesNotMatch(dashboardScript, /renderSynergies|synergy-grid/);
 assert.match(dashboardScript, /loadPlayerDetail/);
+assert.match(dashboardScript, /enrichDetailEloDiffs/);
 assert.match(dashboardScript, /renderDeepMatches/);
 assert.match(dashboardScript, /renderDeepMaps/);
 assert.doesNotMatch(dashboardScript, /navigator\.share|navigator\.clipboard|data-share-player/);
@@ -194,7 +196,7 @@ assert.deepEqual(
   normalizedStats.eloHistory,
   [
     { date: 1767261600, elo: 1450, eloDiff: undefined },
-    { date: 1767265200, elo: 1480, eloDiff: undefined },
+    { date: 1767265200, elo: 1480, eloDiff: 30 },
     { date: 1767268800, elo: 1500, eloDiff: 20 }
   ],
   "ELO history should accept both FACEIT history formats and remain chronological"
@@ -222,9 +224,10 @@ const analyzedStats = stats.calculatePlayerStats(
   },
   [
     { date: 1767265200, elo: 1500, elo_delta: 25, matchId: "1-match-b", i1: "de_mirage", i10: "1", i18: "13 - 10" },
-    { date: 1767268800, elo: 1525, elo_delta: 25, matchId: "1-match-a", i1: "de_mirage", i10: "1", i18: "13 - 8" }
+    { date: 1767268800, elo: 1525, matchId: "1-match-a", i1: "de_mirage", i10: "1", i18: "13 - 8" }
   ]
 );
+assert.equal(analyzedStats.matchHistory[0].eloDiff, 25);
 assert.equal(analyzedStats.matchHistory[0].matchUrl, "https://www.faceit.com/de/cs2/room/1-match-a");
 assert.equal(analyzedStats.personalBests.peakElo, 1525);
 assert.equal(analyzedStats.personalBests.longestWinStreak, 2);

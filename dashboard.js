@@ -1197,6 +1197,48 @@
   const detailPeriodData = detail => detail?.periods?.[String(state.analysisPeriod)] || detail?.periods?.["30"] || {};
   const detailMatches = detail => (detail?.matches || []).slice(0, state.analysisPeriod);
 
+  const enrichDetailEloDiffs = detail => {
+    if (!detail || !Array.isArray(detail.history) || !Array.isArray(detail.matches)) return detail;
+    const points = detail.history
+      .map(point => {
+        const rawDate = number(point?.date ?? point?.created_at ?? point?.updated_at, NaN);
+        return {
+          date: rawDate > 1e12 ? Math.floor(rawDate / 1000) : Math.floor(rawDate),
+          elo: number(point?.elo ?? point?.i20, NaN),
+          eloDiff: number(point?.eloDiff ?? point?.elo_delta, NaN),
+          matchId: text(point?.matchId ?? point?.match_id)
+        };
+      })
+      .filter(point => Number.isFinite(point.date) && Number.isFinite(point.elo))
+      .sort((a, b) => a.date - b.date);
+
+    for (let index = 1; index < points.length; index++) {
+      if (Number.isFinite(points[index].eloDiff)) continue;
+      points[index].eloDiff = points[index].elo - points[index - 1].elo;
+    }
+
+    const pointsByMatch = new Map(points.filter(point => point.matchId).map(point => [point.matchId, point]));
+    const claimedPoints = new Set();
+    detail.matches = detail.matches.map(match => {
+      const hasEloDiff = match.eloDiff !== null && match.eloDiff !== "" && Number.isFinite(Number(match.eloDiff));
+      if (hasEloDiff) return match;
+      const matchDate = number(match.date, NaN);
+      let point = pointsByMatch.get(text(match.matchId));
+      if (!point && Number.isFinite(matchDate)) {
+        const closest = points.reduce((best, candidate) => {
+          if (candidate.matchId || claimedPoints.has(candidate)) return best;
+          const distance = Math.abs(candidate.date - matchDate);
+          return !best || distance < best.distance ? { point: candidate, distance } : best;
+        }, null);
+        point = closest && closest.distance <= 5 * 60 ? closest.point : null;
+      }
+      if (!point || !Number.isFinite(point.eloDiff)) return match;
+      claimedPoints.add(point);
+      return { ...match, elo: Number.isFinite(Number(match.elo)) ? match.elo : point.elo, eloDiff: point.eloDiff };
+    });
+    return detail;
+  };
+
   const loadPlayerDetail = async playerId => {
     if (state.playerDetailCache.has(playerId)) return state.playerDetailCache.get(playerId);
     const request = fetch(`data/players/${encodeURIComponent(playerId)}.json`, { cache: "no-cache" })
@@ -1206,7 +1248,7 @@
       });
     state.playerDetailCache.set(playerId, request);
     try {
-      const detail = await request;
+      const detail = enrichDetailEloDiffs(await request);
       state.playerDetailCache.set(playerId, detail);
       return detail;
     } catch (error) {
