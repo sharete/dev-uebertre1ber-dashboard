@@ -14,7 +14,7 @@
     deepDive: { playerId: null, tab: "overview", matchPage: 1, teammatePage: 1, map: "all", result: "all", query: "", mapSort: "matches", mapSortDirection: "desc", chart: null, trigger: null, filterTimer: null }
   };
 
-  const colors = ["#ff6a2b", "#64e6a4", "#69a9ff", "#a98dff", "#ff6e7b"];
+  const colors = ["#ff5500", "#ff955c", "#e1ad63", "#7f95a8", "#9b88a8"];
   const tableBody = document.getElementById("playerTableBody");
   const searchInput = document.getElementById("searchInput");
   const emptyState = document.getElementById("emptyState");
@@ -238,7 +238,7 @@
   const chartDefaults = () => {
     if (!chartAvailable()) return;
     Chart.defaults.color = "#77818e";
-    Chart.defaults.font.family = '"Space Grotesk", system-ui, sans-serif';
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
     Chart.defaults.borderColor = "rgba(255,255,255,.06)";
   };
 

@@ -3,46 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090a0c">
+  <meta name="theme-color" content="#070809">
   <meta name="color-scheme" content="dark">
-  <title>Uebertr1eber — FACEIT Team Intelligence</title>
+  <title>Uebertr1eber — FACEIT Team Dashboard</title>
   <meta name="description" content="Live Ranking, Form, Rollenprofile und Match-Analysen der Uebertr1eber-Crew.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Uebertr1eber — FACEIT Team Intelligence">
+  <meta property="og:title" content="Uebertr1eber — FACEIT Team Dashboard">
   <meta property="og:description" content="ELO, Form, Rollenprofile und Match-Intelligence der Crew.">
   <meta property="og:image" content="https://sharete.github.io/dev-uebertre1ber-dashboard/og.png">
   <meta property="og:image:alt" content="Uebertr1eber FACEIT Team Intelligence">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Uebertr1eber — FACEIT Team Intelligence">
+  <meta name="twitter:title" content="Uebertr1eber — FACEIT Team Dashboard">
   <meta name="twitter:description" content="Das Live Performance-System der Uebertr1eber-Crew.">
   <meta name="twitter:image" content="https://sharete.github.io/dev-uebertre1ber-dashboard/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="vendor/chart.min.js" defer></script>
   <link rel="stylesheet" href="tailwind.generated.css">
   <link rel="stylesheet" href="dashboard.css?v=<!-- INSERT_ASSET_VERSION -->">
 </head>
 <body>
-  <a class="skip-link" href="#leaderboard">Zum Live Ranking springen</a>
+  <a class="skip-link" href="#leaderboard">Zum Squad springen</a>
 
   <header class="site-header">
-    <div class="header-inner">
+    <div class="header-inner shell">
       <a class="legacy-brand" href="#top" aria-label="Uebertr1eber Startseite">
         <img src="icons/levels/uebertreiber_logo.png" alt="Uebertr1eber ELO Dashboard">
       </a>
-      <div class="rail-edition">
-        <span>FACEIT REPORT</span>
-        <strong>LIVE / 2026</strong>
-      </div>
       <nav class="primary-nav" aria-label="Hauptnavigation">
-        <a href="#leaderboard"><span>01</span>Ranking</a>
-        <a href="#standouts"><span>02</span>Standouts</a>
-        <a href="#elo-vergleich"><span>03</span>Compare Lab</a>
+        <a href="#leaderboard">Spieler</a>
+        <a href="#standouts">Leaders</a>
+        <a href="#elo-vergleich">Vergleich</a>
       </nav>
       <div class="header-status">
         <span class="live-dot" aria-hidden="true"></span>
-        <span>Data live</span>
+        <span>Live Data</span>
         <time><!-- INSERT_LAST_UPDATED --></time>
       </div>
     </div>
@@ -50,17 +46,21 @@
 
   <main id="top">
     <section class="shell command-bar first-section" aria-labelledby="dashboard-title">
+      <div class="team-mark" aria-hidden="true"><span>U1</span></div>
       <div class="command-copy">
-        <p class="kicker">UEBERTR1EBER / PERFORMANCE DESK</p>
-        <h1 id="dashboard-title"><span>The roster.</span><br>Right now.</h1>
-        <p>Ein datenbasierter Blick auf ELO, Form und Rollen der gesamten Crew.</p>
+        <p class="kicker">FACEIT TEAM DASHBOARD</p>
+        <h1 id="dashboard-title">Uebertre1ber</h1>
+        <div class="team-meta">
+          <span><!-- INSERT_PLAYER_COUNT --> Spieler</span>
+          <span>Counter-Strike 2</span>
+          <span>Live Performance Tracking</span>
+        </div>
       </div>
-      <div class="command-edition" aria-hidden="true"><span>ISSUE</span><strong>08</strong><small>LIVE EDITION</small></div>
       <div class="analysis-selector">
         <div>
-          <span>Datensatz</span>
+          <span>Analysezeitraum</span>
           <strong id="analysis-period-copy">Letzte 30 Matches</strong>
-          <small>Steuert alle Performance-Werte</small>
+          <small>Gilt für Spielerwerte und Leaders</small>
         </div>
         <div class="analysis-period-control" role="group" aria-label="Anzahl der analysierten Matches">
           <button class="analysis-period active" type="button" data-analysis-period="30" aria-pressed="true">30</button>
@@ -70,11 +70,11 @@
       </div>
     </section>
 
-    <section class="shell squad-pulse" aria-label="Crew Pulse">
+    <section class="shell squad-pulse" aria-label="Team Performance">
       <article class="pulse-card pulse-primary">
-        <span>Ø Crew ELO</span>
+        <span>Team ELO</span>
         <strong id="crew-average">—</strong>
-        <small>über alle getrackten Spieler</small>
+        <small>Durchschnitt aller Spieler</small>
       </article>
       <article class="pulse-card">
         <span>Aktiv</span>
@@ -96,10 +96,10 @@
     <section class="shell leaderboard-section" id="leaderboard" aria-labelledby="leaderboard-title">
       <div class="section-heading leaderboard-heading">
         <div>
-          <p class="kicker">LIVE POWER INDEX</p>
-          <h2 id="leaderboard-title">Live Ranking</h2>
+          <p class="kicker">PLAYER PERFORMANCE</p>
+          <h2 id="leaderboard-title">Dein Squad</h2>
         </div>
-        <p>Klicke auf einen Spieler für Matcharchiv, Map-Splits, Teammates und Bestleistungen.</p>
+        <p>Alle FACEIT-Spieler als Performance Cards. Öffne eine Karte für Matcharchiv, Maps, Teammates und Bestleistungen.</p>
       </div>
 
       <div class="toolbar" aria-label="Ranking filtern">
@@ -164,10 +164,10 @@
     <section class="shell awards-section" id="standouts" aria-labelledby="awards-title">
       <div class="section-heading">
         <div>
-          <p class="kicker">ROLE LEADERS</p>
-          <h2 id="awards-title">Standouts <span>(letzte 30 Matches)</span></h2>
+          <p class="kicker">TEAM INTELLIGENCE</p>
+          <h2 id="awards-title">Performance Leaders <span>(letzte 30 Matches)</span></h2>
         </div>
-        <p>Wer aktuell Aim, Output, Siege und Serien kontrolliert.</p>
+        <p>Die stärksten messbaren Leistungen innerhalb des gewählten Zeitraums.</p>
       </div>
       <div id="awards-grid"><!-- INSERT_AWARDS_SECTION --></div>
     </section>
@@ -177,8 +177,8 @@
       <div class="shell">
         <div class="section-heading comparison-heading">
           <div>
-            <p class="kicker">HEAD TO HEAD</p>
-            <h2 id="comparison-title">Compare Lab <span class="sr-only">ELO-Verlauf vergleichen</span></h2>
+            <p class="kicker">PROGRESSION</p>
+            <h2 id="comparison-title">ELO vergleichen <span class="sr-only">ELO-Verlauf vergleichen</span></h2>
           </div>
           <p>Bis zu fünf Spieler auswählen und ELO, Form, K/D und gemeinsame Matches vergleichen.</p>
         </div>
