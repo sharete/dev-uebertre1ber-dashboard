@@ -432,8 +432,8 @@
             labels: radar.labels,
             datasets: [{
               data: radar.data,
-              borderColor: "#69a9ff",
-              backgroundColor: "rgba(105,169,255,.12)",
+              borderColor: "#ff5a22",
+              backgroundColor: "rgba(255,90,34,.1)",
               borderWidth: 2,
               pointRadius: 2
             }]
@@ -479,7 +479,7 @@
     onClick: openChartMatch,
     scales: {
       x: { type: "linear", min: 1, max: period, display: false },
-      y: { grid: { color: "rgba(255,255,255,.055)" }, ticks: { maxTicksLimit: 5, font: { size: 9 } } }
+      y: { grid: { color: "rgba(255,255,255,.055)" }, ticks: { color: "#8d9198", maxTicksLimit: 5, font: { size: 9 } } }
     }
   });
 
@@ -1132,7 +1132,7 @@
         animation: false,
         interaction: { mode: "nearest", axis: "x", intersect: false },
         plugins: {
-          legend: { position: "top", align: "start", labels: { usePointStyle: true, boxWidth: 7, boxHeight: 7, padding: 18, font: { size: 10 } } },
+          legend: { position: "top", align: "start", labels: { color: "#8d9198", usePointStyle: true, boxWidth: 7, boxHeight: 7, padding: 18, font: { size: 10 } } },
           tooltip: {
             displayColors: true,
             callbacks: matchTooltipCallbacks
@@ -1146,9 +1146,9 @@
             max: state.analysisPeriod,
             grid: { color: "rgba(255,255,255,.035)" },
             title: { display: true, text: `Letzte ${state.analysisPeriod} Matches →`, color: "#606a78", font: { size: 9 } },
-            ticks: { maxTicksLimit: 10, precision: 0, font: { size: 9 } }
+            ticks: { color: "#8d9198", maxTicksLimit: 10, precision: 0, font: { size: 9 } }
           },
-          y: { grid: { color: "rgba(255,255,255,.055)" }, ticks: { maxTicksLimit: 6, font: { size: 9 } } }
+          y: { grid: { color: "rgba(255,255,255,.055)" }, ticks: { color: "#8d9198", maxTicksLimit: 6, font: { size: 9 } } }
         }
       }
     });
@@ -1283,7 +1283,7 @@
     state.deepDive.chart = new Chart(canvas, {
       type: "line",
       data: { labels: history.map((_, index) => index + 1), datasets: [{ data: history.map(point => number(point.elo)), borderColor: "#ff642e", backgroundColor: "rgba(255,100,46,.12)", fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 4, tension: .34, cubicInterpolationMode: "monotone" }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, ticks: { color: "#6f6b64", maxTicksLimit: 8 } }, y: { grid: { color: "rgba(17,16,15,.12)" }, ticks: { color: "#6f6b64", maxTicksLimit: 5 } } } }
+      options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, interaction: { mode: "index", intersect: false }, scales: { x: { grid: { display: false }, ticks: { color: "#8d9198", maxTicksLimit: 8 } }, y: { grid: { color: "rgba(255,255,255,.07)" }, ticks: { color: "#8d9198", maxTicksLimit: 5 } } } }
     });
   };
 
