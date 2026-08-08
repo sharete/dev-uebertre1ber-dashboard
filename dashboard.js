@@ -123,6 +123,8 @@
     const mvp = climbers[0];
     const drop = climbers[climbers.length - 1];
     const avg = Math.round(rows.reduce((sum, row) => sum + number(row.dataset.elo), 0) / rows.length);
+    const active = rows.filter(row => row.dataset.quality === "fresh").length;
+    const positiveForm = rows.filter(row => number(row.dataset.form) >= 60).length;
 
     setText("hero-king-name", leader.dataset.nickname || "—");
     setText("hero-king-elo", `${Math.round(number(leader.dataset.elo)).toLocaleString("de-DE")} ELO`);
@@ -133,6 +135,10 @@
     setText("hero-down-name", dropValue < 0 ? (drop.dataset.nickname || "—") : "Alle im Plus 💪");
     setSignedText("hero-down-diff", Math.min(0, dropValue));
     setText("crew-average", avg.toLocaleString("de-DE"));
+    setText("squad-active-count", active);
+    setText("squad-positive-form", positiveForm);
+    setText("squad-top-mover", mvp.dataset.nickname || "—");
+    setSignedText("squad-top-mover-diff", number(mvp.dataset.diff), " im Zeitraum");
     setSignedText("hero-king-diff", number(leader.dataset.diff));
 
     const progress = document.getElementById("hero-king-progress");
@@ -232,7 +238,7 @@
   const chartDefaults = () => {
     if (!chartAvailable()) return;
     Chart.defaults.color = "#77818e";
-    Chart.defaults.font.family = '"DM Sans", system-ui, sans-serif';
+    Chart.defaults.font.family = '"Space Grotesk", system-ui, sans-serif';
     Chart.defaults.borderColor = "rgba(255,255,255,.06)";
   };
 
@@ -699,6 +705,7 @@
     const recent = data.recent || {};
     const quality = data.dataQuality || {};
     const personal = data.personalBests || {};
+    const performance = data.performanceProfile || {};
     const last5 = Array.isArray(data.last5) ? data.last5 : [];
     const wins = last5.filter(result => result === "W").length;
     const cardValues = {
@@ -706,6 +713,7 @@
       adr: recent.adr ?? "0.0",
       winrate: `${number(recent.winratePct)}%`,
       hs: recent.hsPercent ?? "0%",
+      consistency: `${number(performance.consistency)}%`,
       form: last5.length ? `${wins}/${last5.length}` : "—",
       streak: number(data.streak?.count) ? `${number(data.streak.count)}${data.streak.type === "win" ? "W" : "L"}` : "—"
     };
@@ -728,6 +736,10 @@
     row.dataset.formWins = String(wins);
     row.dataset.formTotal = String(last5.length);
     row.dataset.form = String(last5.length ? Math.round(wins / last5.length * 100) : 0);
+    row.dataset.consistency = String(number(performance.consistency));
+    row.dataset.role = text(performance.role?.label || "Allrounder");
+    const roleLabel = row.querySelector("[data-card-role]");
+    if (roleLabel) roleLabel.textContent = row.dataset.role;
     row.dataset.streak = cardValues.streak;
     row.dataset.streakType = data.streak?.type || "none";
     if (!details) return;
@@ -959,10 +971,10 @@
         number(candidate.data.recent?.deaths, Infinity) < number(winner.data?.recent?.deaths, Infinity) ? candidate : winner,
       null);
     const awardValues = [
-      [best(data => number(data.recent?.kd)), data => number(data.recent?.kd).toFixed(2)],
+      [best(data => number(data.recent?.kd)), data => `${number(data.recent?.kd).toFixed(2)} K/D`],
       [best(data => number(data.recent?.hsPercent)), data => `${number(data.recent?.hsPercent)}%`],
-      [best(data => number(data.recent?.adr)), data => number(data.recent?.adr).toFixed(1)],
-      [best(data => number(data.recent?.winratePct)), data => `${number(data.recent?.winratePct)}%`],
+      [best(data => number(data.recent?.adr)), data => `${number(data.recent?.adr).toFixed(1)} ADR`],
+      [best(data => number(data.recent?.winratePct)), data => `${number(data.recent?.winratePct)}% WR`],
       [best(data => data.streak?.type === "win" ? number(data.streak.count) : 0), data => `${number(data.streak?.count)}W`],
       [lowest || { player: { nickname: "—" }, data: {} }, data => `${number(data.recent?.deaths)} Deaths`]
     ];
@@ -992,6 +1004,7 @@
       const comparisonLabel = document.getElementById("comparison-period-label");
       if (comparisonLabel) comparisonLabel.textContent = `Letzte ${period} Matches`;
       playerRows().forEach(updatePlayerPeriod);
+      updateSummary();
       renderPeriodAwards();
       void renderComparison();
     }));
@@ -1207,6 +1220,8 @@
     const data = detailPeriodData(detail);
     const recent = data.recent || {};
     const personal = data.personalBests || {};
+    const performance = data.performanceProfile || {};
+    const role = performance.role || { label: "Allrounder", description: "Ausgeglichenes Leistungsprofil" };
     const quality = data.dataQuality || {};
     const history = (detail.history || []).slice(-state.analysisPeriod);
     const levelStarts = [0, 100, 501, 751, 901, 1051, 1201, 1351, 1531, 1751, 2001];
@@ -1223,6 +1238,13 @@
         <article><span>ADR</span><strong>${escapeUi(recent.adr || "0.0")}</strong><small>${number(recent.assists)} Assists · ${number(recent.matches)} Matches</small></article>
         <article class="deep-winrate"><span>Winrate</span><strong>${number(recent.winratePct)}%</strong><i style="--value:${number(recent.winratePct)}"></i><small>${number(recent.wins)} Siege</small></article>
         <article><span>Current ELO</span><strong>${number(profile.elo).toLocaleString("de-DE")}</strong><small>Peak ${number(personal.peakElo, profile.elo).toLocaleString("de-DE")}</small></article>
+      </section>
+      <section class="deep-profile-strip" aria-label="Rollen- und Impact-Profil">
+        <article class="profile-role"><span>Rollenprofil</span><strong>${escapeUi(role.label)}</strong><small>${escapeUi(role.description)}</small></article>
+        <article><span>Konstanz</span><strong>${number(performance.consistency)}%</strong><small>Streuung von K/D, ADR und ELO</small></article>
+        <article><span>Entry Success</span><strong>${number(recent.entrySuccess)}%</strong><small>${number(recent.entryWins)} gewonnene Entries</small></article>
+        <article><span>Clutches</span><strong>${number(recent.clutches)}</strong><small>${number(performance.clutchesPerMatch).toFixed(2)} pro Match</small></article>
+        <article><span>Utility / Match</span><strong>${number(performance.utilityPerMatch)}</strong><small>${number(recent.utilityDamage)} Damage gesamt</small></article>
       </section>
       <section class="deep-overview-grid">
         <article class="deep-level-card">

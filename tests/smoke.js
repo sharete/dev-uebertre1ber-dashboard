@@ -40,6 +40,10 @@ assert.match(generated, /Last Update:/);
 assert.match(generated, /Dashboard by <a [^>]*>sha<\/a>/);
 assert.match(generated, /id="formSort"/);
 assert.match(generated, /id="global-insights"/);
+assert.match(generated, /class="shell squad-pulse"/);
+assert.match(generated, /id="squad-active-count"/);
+assert.match(generated, /data-card-stat="consistency"/);
+assert.match(generated, /data-card-role/);
 assert.match(generated, /id="comparison-metrics"/);
 assert.doesNotMatch(template, /id="synergy-grid"|Team-Synergien/);
 assert.equal(fs.statSync(path.join(root, "vendor", "chart.min.js")).size > 100000, true);
@@ -71,6 +75,8 @@ assert.match(apiScript, /from=0&limit=/);
 assert.match(dashboardScript, /matchTooltipCallbacks/);
 assert.match(dashboardScript, /Klicken, um das FACEIT-Match zu öffnen/);
 assert.match(dashboardScript, /renderComparisonMetrics/);
+assert.match(dashboardScript, /squad-positive-form/);
+assert.match(dashboardScript, /performanceProfile/);
 assert.doesNotMatch(dashboardScript, /renderSynergies|synergy-grid/);
 assert.match(dashboardScript, /loadPlayerDetail/);
 assert.match(dashboardScript, /renderDeepMatches/);
@@ -166,6 +172,7 @@ const playerDetail = JSON.parse(fs.readFileSync(playerDetailPath, "utf8"));
 assert.equal(playerDetail.profile.id, "player-1");
 assert.ok(Array.isArray(playerDetail.matches));
 assert.ok(playerDetail.periods["100"]);
+assert.ok(playerDetail.periods["100"].performanceProfile);
 fs.rmSync(tempDir, { recursive: true, force: true });
 
 const normalizedStats = stats.calculatePlayerStats("player-1", [], {}, [
@@ -221,6 +228,8 @@ assert.equal(analyzedStats.matchHistory[0].tripleKills, 1);
 assert.equal(analyzedStats.mapPerformance[0].adr, "88.0");
 assert.equal(analyzedStats.mapPerformance[0].entrySuccess, 63);
 assert.equal(analyzedStats.teammates[0].avatar, "https://example.com/two.jpg");
+assert.equal(typeof analyzedStats.performanceProfile.consistency, "number");
+assert.equal(analyzedStats.performanceProfile.role.label, "Opener");
 assert.equal(
   stats.calculatePlayerStats("player-1", [], {}, [], 60).dataQuality.requestedMatches,
   60

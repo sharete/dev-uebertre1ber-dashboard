@@ -1,7 +1,13 @@
-const { DateTime } = require("luxon");
-
 const FRESH_HOURS = 7 * 24;
 const AGING_HOURS = 30 * 24;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const average = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+const deviation = values => {
+    if (values.length < 2) return 0;
+    const mean = average(values);
+    return Math.sqrt(average(values.map(value => (value - mean) ** 2)));
+};
 
 class StatsCalculator {
     /**
@@ -335,6 +341,46 @@ class StatsCalculator {
             ageHours: Number.isFinite(freshness.ageHours) ? Math.round(freshness.ageHours) : null
         };
 
+        const matchKdValues = detailedHistory.map(match => Number(match.kd)).filter(Number.isFinite);
+        const matchAdrValues = detailedHistory.map(match => Number(match.adr)).filter(Number.isFinite);
+        const eloDeltas = eloHistory.slice(1).map((point, index) => point.elo - eloHistory[index].elo);
+        const kdVariation = average(matchKdValues) ? deviation(matchKdValues) / average(matchKdValues) : 0;
+        const adrVariation = average(matchAdrValues) ? deviation(matchAdrValues) / average(matchAdrValues) : 0;
+        const eloNoise = Math.min(30, deviation(eloDeltas));
+        const consistency = detailedHistory.length >= 3
+            ? Math.round(clamp(100 - kdVariation * 42 - adrVariation * 28 - eloNoise * 0.65, 0, 100))
+            : 0;
+        const trendWindow = eloHistory.slice(-10);
+        const eloTrend = trendWindow.length >= 2 ? trendWindow.at(-1).elo - trendWindow[0].elo : 0;
+        const matchesAnalyzed = Math.max(1, recentStats.matches);
+        const entryAttemptsPerMatch = recentStats.entryCount / matchesAnalyzed;
+        const clutchesPerMatch = recentStats.clutches / matchesAnalyzed;
+        const utilityPerMatch = recentStats.utilityDamage / matchesAnalyzed;
+        const hsPercent = Number.parseFloat(recentStats.hsPercent) || 0;
+        const kd = Number.parseFloat(recentStats.kd) || 0;
+        const adr = Number.parseFloat(recentStats.adr) || 0;
+        let role = { key: "allrounder", label: "Allrounder", description: "Ausgeglichenes Profil ohne extreme Ausschläge" };
+        if (entryAttemptsPerMatch >= 0.35 && recentStats.entrySuccess >= 50) {
+            role = { key: "opener", label: "Opener", description: "Sucht und gewinnt häufig die ersten Duelle" };
+        } else if (clutchesPerMatch >= 0.12) {
+            role = { key: "closer", label: "Closer", description: "Überdurchschnittlich präsent in Clutch-Situationen" };
+        } else if (utilityPerMatch >= 80) {
+            role = { key: "support", label: "Support", description: "Hoher messbarer Impact durch Utility" };
+        } else if (hsPercent >= 55 && kd >= 1.05) {
+            role = { key: "sharpshooter", label: "Sharpshooter", description: "Hohe Präzision und starke Headshot-Quote" };
+        } else if (adr >= 82 && kd >= 1.08) {
+            role = { key: "fragger", label: "Fragger", description: "Hoher Damage-Output bei positiver K/D" };
+        }
+        const performanceProfile = {
+            consistency,
+            eloTrend,
+            eloVolatility: Math.round(eloNoise * 10) / 10,
+            role,
+            entryAttemptsPerMatch: Math.round(entryAttemptsPerMatch * 100) / 100,
+            clutchesPerMatch: Math.round(clutchesPerMatch * 100) / 100,
+            utilityPerMatch: Math.round(utilityPerMatch)
+        };
+
         const recentElo = eloHistory.slice(-10);
         const recentGain = recentElo.length >= 2 ? recentElo.at(-1).elo - recentElo[0].elo : 0;
         const insights = [];
@@ -373,6 +419,7 @@ class StatsCalculator {
             mapPerformance,
             personalBests,
             dataQuality,
+            performanceProfile,
             insights
         };
     }
@@ -389,6 +436,7 @@ class StatsCalculator {
             mapPerformance: [],
             personalBests: { peakElo: 0, peakEloDate: null, longestWinStreak: 0, bestMap: null, bestThirtyGain: 0 },
             dataQuality: { status: "stale", label: "Keine Matchdaten", matchCoverage: 0, eloSamples: 0, latestTimestamp: 0, ageHours: null },
+            performanceProfile: { consistency: 0, eloTrend: 0, eloVolatility: 0, role: { key: "allrounder", label: "Allrounder", description: "Noch nicht genügend Daten" }, entryAttemptsPerMatch: 0, clutchesPerMatch: 0, utilityPerMatch: 0 },
             insights: []
         };
     }

@@ -18,6 +18,38 @@ const normalizeUrl = (value) => {
 };
 const safeUrl = (value) => escapeHtml(normalizeUrl(value));
 
+const deriveRenderProfile = stats => {
+  if (stats?.performanceProfile?.role) return stats.performanceProfile;
+  const recent = stats?.recent || {};
+  const matches = stats?.matchHistory || [];
+  const numeric = values => values.map(Number).filter(Number.isFinite);
+  const average = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+  const deviation = values => {
+    if (values.length < 2) return 0;
+    const mean = average(values);
+    return Math.sqrt(average(values.map(value => (value - mean) ** 2)));
+  };
+  const kdValues = numeric(matches.map(match => match.kd));
+  const adrValues = numeric(matches.map(match => match.adr));
+  const kdVariation = average(kdValues) ? deviation(kdValues) / average(kdValues) : 0;
+  const adrVariation = average(adrValues) ? deviation(adrValues) / average(adrValues) : 0;
+  const consistency = matches.length >= 3 ? Math.round(Math.max(0, Math.min(100, 100 - kdVariation * 52 - adrVariation * 34))) : 0;
+  const analyzed = Math.max(1, Number(recent.matches) || matches.length || 1);
+  const entryAttemptsPerMatch = (Number(recent.entryCount) || 0) / analyzed;
+  const clutchesPerMatch = (Number(recent.clutches) || 0) / analyzed;
+  const utilityPerMatch = Math.round((Number(recent.utilityDamage) || 0) / analyzed);
+  const hs = Number.parseFloat(recent.hsPercent) || 0;
+  const kd = Number.parseFloat(recent.kd) || 0;
+  const adr = Number.parseFloat(recent.adr) || 0;
+  let role = { key: 'allrounder', label: 'Allrounder', description: 'Ausgeglichenes Profil ohne extreme Ausschläge' };
+  if (entryAttemptsPerMatch >= .35 && Number(recent.entrySuccess) >= 50) role = { key: 'opener', label: 'Opener', description: 'Sucht und gewinnt häufig die ersten Duelle' };
+  else if (clutchesPerMatch >= .12) role = { key: 'closer', label: 'Closer', description: 'Überdurchschnittlich präsent in Clutch-Situationen' };
+  else if (utilityPerMatch >= 80) role = { key: 'support', label: 'Support', description: 'Hoher messbarer Impact durch Utility' };
+  else if (hs >= 55 && kd >= 1.05) role = { key: 'sharpshooter', label: 'Sharpshooter', description: 'Hohe Präzision und starke Headshot-Quote' };
+  else if (adr >= 82 && kd >= 1.08) role = { key: 'fragger', label: 'Fragger', description: 'Hoher Damage-Output bei positiver K/D' };
+  return { consistency, eloTrend: 0, eloVolatility: 0, role, entryAttemptsPerMatch, clutchesPerMatch, utilityPerMatch };
+};
+
 const serializeForScript = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
 const countryFlag = value => {
@@ -74,6 +106,7 @@ class Renderer {
       mapPerformance: periodStats?.mapPerformance || [],
       personalBests: periodStats?.personalBests || {},
       dataQuality: periodStats?.dataQuality || {},
+      performanceProfile: deriveRenderProfile(periodStats),
       insights: periodStats?.insights || [],
       teammates: enrichTeammates(periodStats)
     });
@@ -119,6 +152,7 @@ class Renderer {
       streak: periodStats?.streak || { type: "none", count: 0 },
       personalBests: periodStats?.personalBests || {},
       dataQuality: periodStats?.dataQuality || {},
+      performanceProfile: deriveRenderProfile(periodStats),
       insights: periodStats?.insights || [],
       matchIds: (periodStats?.matchHistory || []).map(match => match.matchId).filter(Boolean),
       history: (periodStats?.eloHistory || []).slice(-Number(period) || -30)
@@ -137,6 +171,7 @@ class Renderer {
       last5: p.stats.last5 || [],
       personalBests: p.stats.personalBests || {},
       dataQuality: p.stats.dataQuality || {},
+      performanceProfile: deriveRenderProfile(p.stats),
       insights: p.stats.insights || [],
       history: (p.stats.eloHistory || []).slice(-100),
       periods: Object.fromEntries(["30", "60", "100"].map(period => [
@@ -162,29 +197,32 @@ class Renderer {
   renderAwards(awards) {
     if (!awards || Object.keys(awards).length === 0) return "";
 
-    const card = (title, name, value, icon, accent) => `
+    const card = (title, name, value, icon, accent, index) => `
       <article class="award-card award-${accent}">
+        <span class="award-index" aria-hidden="true">0${index}</span>
         <span class="award-icon" aria-hidden="true">${iconSvg(icon, 'award-svg')}</span>
         <div class="award-copy">
-          <p class="text-[10px] uppercase tracking-widest text-white/40 font-bold">${escapeHtml(title)}</p>
-          <p class="font-bold text-white text-sm tracking-tight">${escapeHtml(name)}</p>
-          <p class="font-mono text-xs">${escapeHtml(value)}</p>
+          <p>${escapeHtml(title)}</p>
+          <p>${escapeHtml(name)}</p>
+          <p>${escapeHtml(value)}</p>
         </div>
       </article>`;
 
     return `
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
-      ${card("Best K/D", awards.bestKD.name, awards.bestKD.value, "target", "blue")}
-      ${card("Headshot King", awards.bestHS.name, awards.bestHS.value, "burst", "yellow")}
-      ${card("Best ADR", awards.bestADR.name, awards.bestADR.value, "bolt", "violet")}
-      ${card("Best Winrate", awards.bestWinrate.name, `${awards.bestWinrate.value}%`, "trophy", "green")}
-      ${card("Win Streak", awards.longestStreak.name, `${awards.longestStreak.value}W`, "flame", "orange")}
-      ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeaths.value) ? awards.lowestDeaths.value : 0} Deaths`, "shield", "cyan")}
+    <div class="award-grid">
+${card("Duelist", awards.bestKD.name, `${awards.bestKD.value} K/D`, "target", "blue", 1)}
+${card("Headshot King", awards.bestHS.name, awards.bestHS.value, "burst", "yellow", 2)}
+${card("Damage Dealer", awards.bestADR.name, `${awards.bestADR.value} ADR`, "bolt", "violet", 3)}
+${card("Winner", awards.bestWinrate.name, `${awards.bestWinrate.value}% WR`, "trophy", "green", 4)}
+${card("Hot Hand", awards.longestStreak.name, `${awards.longestStreak.value}W`, "flame", "orange", 5)}
+${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeaths.value) ? awards.lowestDeaths.value : 0} Deaths`, "shield", "cyan", 6)}
     </div>`;
   }
 
   renderRankingCard(p) {
     const recent = p.stats?.recent || {};
+    const performance = deriveRenderProfile(p.stats);
+    const role = performance.role || { key: 'allrounder', label: 'Allrounder' };
     const last5 = p.stats?.last5 || [];
     const streak = p.stats?.streak || { type: 'none', count: 0 };
     const quality = p.stats?.dataQuality || { status: 'stale', label: 'Keine Matchdaten' };
@@ -205,30 +243,38 @@ class Renderer {
       data-level="${Number(p.level) || 0}" data-last="${escapeHtml(p.lastMatch)}"
       data-last-ts="${Number(p.lastMatchTs) || 0}" data-kd="${Number.parseFloat(recent.kd) || 0}"
       data-adr="${Number.parseFloat(recent.adr) || 0}" data-form="${formPercent}"
+      data-consistency="${Number(performance.consistency) || 0}" data-role="${escapeHtml(role.label)}"
       data-quality="${escapeHtml(quality.status)}" data-peak="${Number(p.stats?.personalBests?.peakElo) || Number(p.elo) || 0}"
       data-streak="${escapeHtml(streakLabel)}" data-streak-type="${escapeHtml(streak.type)}">
       <td colspan="7">
         <article class="ranking-card">
-          <div class="ranking-card-rank" aria-label="Ranking"><span>—</span><small>Rang</small></div>
-          ${avatar}
-          <div class="ranking-identity">
-            <div class="ranking-country">${countryFlag(p.country)}</div>
-            <a class="nickname-link" href="${safeUrl(p.faceitUrl)}" target="_blank" rel="noopener noreferrer">${nickname}</a>
-            <div class="ranking-meta"><img src="icons/levels/level_${Math.max(1, Math.min(10, Number(p.level) || 1))}_icon.png" alt="FACEIT Level ${escapeHtml(p.level)}"><span>Level ${escapeHtml(p.level)}</span><span class="data-status status-${escapeHtml(quality.status)}">${escapeHtml(quality.label)}</span></div>
+          <div class="ranking-card-rank" aria-label="Ranking"><small>#</small><span>—</span></div>
+          <div class="ranking-player">
+            ${avatar}
+            <div class="ranking-identity">
+              <div class="ranking-eyebrow"><span class="ranking-country">${countryFlag(p.country)}</span><span data-card-role>${escapeHtml(role.label)}</span></div>
+              <a class="nickname-link" href="${safeUrl(p.faceitUrl)}" target="_blank" rel="noopener noreferrer">${nickname}</a>
+              <div class="ranking-meta"><img src="icons/levels/level_${Math.max(1, Math.min(10, Number(p.level) || 1))}_icon.png" alt="FACEIT Level ${escapeHtml(p.level)}"><span>Level ${escapeHtml(p.level)}</span><span class="data-status status-${escapeHtml(quality.status)}"><i></i>${escapeHtml(quality.label)}</span></div>
+            </div>
+          </div>
+          <div class="ranking-elo">
+            <small>Current ELO</small>
+            <strong class="elo-now">${Number(p.elo) || 0}</strong>
+            <span class="elo-diff">±0</span>
           </div>
           <div class="ranking-stat-grid">
             <span><small>K/D</small><strong data-card-stat="kd">${escapeHtml(recent.kd || '0.00')}</strong></span>
             <span><small>ADR</small><strong data-card-stat="adr">${escapeHtml(recent.adr || '0.0')}</strong></span>
             <span><small>Winrate</small><strong data-card-stat="winrate">${Number(recent.winratePct ?? Number.parseFloat(p.winrate)) || 0}%</strong></span>
             <span><small>Headshots</small><strong data-card-stat="hs">${escapeHtml(recent.hsPercent || '0%')}</strong></span>
-            <span><small>Form · 5</small><strong data-card-stat="form">${wins}/${last5.length || 0}</strong><span class="player-form">${formDots}</span></span>
-            <span><small>Serie</small><strong data-card-stat="streak">${escapeHtml(streakLabel)}</strong></span>
+            <span><small>Konstanz</small><strong data-card-stat="consistency">${Number(performance.consistency) || 0}%</strong></span>
           </div>
-          <div class="ranking-elo">
-            <small>Current ELO</small><strong class="elo-now">${Number(p.elo) || 0}</strong><span class="elo-diff">±0</span>
-            <span class="last-match-cell" data-ts="${Number(p.lastMatchTs) || 0}">${escapeHtml(p.lastMatch)}</span>
+          <div class="ranking-form-block">
+            <div><small>Form · letzte 5</small><strong data-card-stat="form">${wins}/${last5.length || 0}</strong></div>
+            <span class="player-form">${formDots}</span>
+            <div class="ranking-form-meta"><span data-card-stat="streak">${escapeHtml(streakLabel)}</span><span class="last-match-cell" data-ts="${Number(p.lastMatchTs) || 0}">${escapeHtml(p.lastMatch)}</span></div>
           </div>
-          <button class="open-player-deep-dive" type="button" aria-label="${nickname} analysieren"><span>Analyse</span><b aria-hidden="true">→</b></button>
+          <button class="open-player-deep-dive" type="button" aria-label="${nickname} analysieren"><span>Profil</span><b aria-hidden="true">→</b></button>
         </article>
       </td>
     </tr>`;

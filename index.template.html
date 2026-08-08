@@ -3,106 +3,99 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090b0f">
+  <meta name="theme-color" content="#090a0c">
   <meta name="color-scheme" content="dark">
-  <title>Uebertr1eber — FACEIT Performance Hub</title>
-  <meta name="description" content="Das Performance-Dashboard der Uebertr1eber: ELO, Form, Trends und Team-Statistiken auf einen Blick.">
+  <title>Uebertr1eber — FACEIT Team Intelligence</title>
+  <meta name="description" content="Live Ranking, Form, Rollenprofile und Match-Analysen der Uebertr1eber-Crew.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Uebertr1eber — FACEIT Performance Hub">
-  <meta property="og:description" content="ELO, Form, Trends und Team-Statistiken der Crew auf einen Blick.">
+  <meta property="og:title" content="Uebertr1eber — FACEIT Team Intelligence">
+  <meta property="og:description" content="ELO, Form, Rollenprofile und Match-Intelligence der Crew.">
   <meta property="og:image" content="https://sharete.github.io/dev-uebertre1ber-dashboard/og.png">
-  <meta property="og:image:alt" content="Uebertr1eber FACEIT Performance Hub">
+  <meta property="og:image:alt" content="Uebertr1eber FACEIT Team Intelligence">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Uebertr1eber — FACEIT Performance Hub">
-  <meta name="twitter:description" content="ELO, Form, Trends und Team-Statistiken der Crew auf einen Blick.">
+  <meta name="twitter:title" content="Uebertr1eber — FACEIT Team Intelligence">
+  <meta name="twitter:description" content="Das Live Performance-System der Uebertr1eber-Crew.">
   <meta name="twitter:image" content="https://sharete.github.io/dev-uebertre1ber-dashboard/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="vendor/chart.min.js" defer></script>
   <link rel="stylesheet" href="tailwind.generated.css">
   <link rel="stylesheet" href="dashboard.css?v=<!-- INSERT_ASSET_VERSION -->">
 </head>
 <body>
-  <a class="skip-link" href="#leaderboard">Zum Ranking springen</a>
+  <a class="skip-link" href="#leaderboard">Zum Live Ranking springen</a>
 
-  <header class="site-header compact-header">
+  <header class="site-header">
     <div class="shell header-inner">
-      <a class="legacy-brand" href="#" aria-label="Uebertr1eber Startseite">
+      <a class="legacy-brand" href="#top" aria-label="Uebertr1eber Startseite">
         <img src="icons/levels/uebertreiber_logo.png" alt="Uebertr1eber ELO Dashboard">
       </a>
+      <nav class="primary-nav" aria-label="Hauptnavigation">
+        <a href="#leaderboard">Ranking</a>
+        <a href="#standouts">Standouts</a>
+        <a href="#elo-vergleich">Compare Lab</a>
+      </nav>
       <div class="header-status">
         <span class="live-dot" aria-hidden="true"></span>
-        <span>Live Tracking</span>
+        <span>Live Data</span>
         <span class="status-divider" aria-hidden="true"></span>
         <time><!-- INSERT_LAST_UPDATED --></time>
       </div>
     </div>
   </header>
 
-  <main>
-    <section class="shell overview-section first-section" aria-label="Performance-Überblick">
-      <div class="overview-cards">
-        <article class="overview-card overview-king">
-          <span class="overview-icon" aria-hidden="true">👑</span>
-          <div>
-            <p>The King</p>
-            <strong id="hero-king-name">—</strong>
-            <small id="hero-king-elo">0 ELO</small>
-          </div>
-        </article>
-        <article class="overview-card overview-mvp">
-          <span class="overview-icon" aria-hidden="true">🔥</span>
-          <div>
-            <p>MVP</p>
-            <strong id="hero-mvp-name">—</strong>
-            <small id="hero-mvp-diff">±0</small>
-          </div>
-        </article>
-        <article class="overview-card overview-drop">
-          <span class="overview-icon" aria-hidden="true">💀</span>
-          <div>
-            <p>Opfer</p>
-            <strong id="hero-down-name">—</strong>
-            <small id="hero-down-diff">±0</small>
-          </div>
-        </article>
-        <article class="overview-card overview-tracked">
-          <span class="overview-icon" aria-hidden="true">📊</span>
-          <div>
-            <p>Tracked</p>
-            <strong><span><!-- INSERT_PLAYER_COUNT --></span> Players</strong>
-            <small><span class="live-dot" aria-hidden="true"></span> Live Updates</small>
-          </div>
-        </article>
+  <main id="top">
+    <section class="shell command-bar first-section" aria-labelledby="dashboard-title">
+      <div class="command-copy">
+        <p class="kicker">FACEIT / CREW OPERATIONS</p>
+        <h1 id="dashboard-title">Form schlägt Gefühl.</h1>
+        <p>Ranking, Rollen und Trends — aus echten Matchdaten, ohne Bauchgefühl.</p>
+      </div>
+      <div class="analysis-selector">
+        <div>
+          <span>Datensatz</span>
+          <strong id="analysis-period-copy">Letzte 30 Matches</strong>
+          <small>Steuert alle Performance-Werte</small>
+        </div>
+        <div class="analysis-period-control" role="group" aria-label="Anzahl der analysierten Matches">
+          <button class="analysis-period active" type="button" data-analysis-period="30" aria-pressed="true">30</button>
+          <button class="analysis-period" type="button" data-analysis-period="60" aria-pressed="false">60</button>
+          <button class="analysis-period" type="button" data-analysis-period="100" aria-pressed="false">100</button>
+        </div>
       </div>
     </section>
 
-    <section class="shell analysis-period-bar" aria-label="Analysezeitraum auswählen">
-      <div>
-        <span>Analysezeitraum</span>
-        <strong id="analysis-period-copy">Letzte 30 Matches</strong>
-        <small>Gilt für Awards, Spieler-Details und den ELO-Vergleich.</small>
-      </div>
-      <div class="analysis-period-control" role="group" aria-label="Anzahl der zu analysierenden Matches">
-        <button class="analysis-period active" type="button" data-analysis-period="30" aria-pressed="true">30</button>
-        <button class="analysis-period" type="button" data-analysis-period="60" aria-pressed="false">60</button>
-        <button class="analysis-period" type="button" data-analysis-period="100" aria-pressed="false">100</button>
-      </div>
+    <section class="shell squad-pulse" aria-label="Crew Pulse">
+      <article class="pulse-card pulse-primary">
+        <span>Ø Crew ELO</span>
+        <strong id="crew-average">—</strong>
+        <small>über alle getrackten Spieler</small>
+      </article>
+      <article class="pulse-card">
+        <span>Aktiv</span>
+        <strong><b id="squad-active-count">0</b>/<b><!-- INSERT_PLAYER_COUNT --></b></strong>
+        <small>Match innerhalb einer Woche</small>
+      </article>
+      <article class="pulse-card">
+        <span>Positive Form</span>
+        <strong id="squad-positive-form">0</strong>
+        <small>mindestens 3 Siege aus 5</small>
+      </article>
+      <article class="pulse-card">
+        <span>Top Mover</span>
+        <strong id="squad-top-mover">—</strong>
+        <small id="squad-top-mover-diff">±0 im Zeitraum</small>
+      </article>
     </section>
 
-    <section class="shell awards-section" aria-labelledby="awards-title">
-      <div class="compact-section-title">
-        <span aria-hidden="true">🏆</span>
-        <h2 id="awards-title">Awards <span>(letzte 30 Matches)</span></h2>
-      </div>
-      <div id="awards-grid"><!-- INSERT_AWARDS_SECTION --></div>
-    </section>
-
-    <section class="shell leaderboard-section" id="leaderboard" aria-label="Live Leaderboard">
-      <div class="compact-section-title leaderboard-title">
-        <span class="live-dot" aria-hidden="true"></span>
-        <h2>Live Leaderboard</h2>
+    <section class="shell leaderboard-section" id="leaderboard" aria-labelledby="leaderboard-title">
+      <div class="section-heading leaderboard-heading">
+        <div>
+          <p class="kicker">LIVE POWER INDEX</p>
+          <h2 id="leaderboard-title">Live Ranking</h2>
+        </div>
+        <p>Klicke auf einen Spieler für Matcharchiv, Map-Splits, Teammates und Bestleistungen.</p>
       </div>
 
       <div class="toolbar" aria-label="Ranking filtern">
@@ -110,16 +103,19 @@
           <span class="search-icon" aria-hidden="true"></span>
           <span class="sr-only">Spieler suchen</span>
           <input id="searchInput" type="search" placeholder="Spieler suchen …" autocomplete="off">
-          <kbd>⌘ K</kbd>
+          <kbd>Ctrl K</kbd>
         </label>
         <div class="toolbar-actions">
           <label class="sort-control">
-            <span>Sortierung</span>
+            <span>Sortieren nach</span>
             <select id="formSort" aria-label="Leaderboard sortieren">
               <option value="elo">ELO</option>
-              <option value="diff">Aktueller Trend</option>
-              <option value="form">Letzte 5 Matches</option>
+              <option value="diff">ELO-Trend</option>
+              <option value="form">Form · letzte 5</option>
               <option value="winrate">Winrate</option>
+              <option value="kd">K/D</option>
+              <option value="adr">ADR</option>
+              <option value="consistency">Konstanz</option>
             </select>
           </label>
           <div class="range-control" role="group" aria-label="Zeitraum für ELO-Veränderung">
@@ -136,20 +132,18 @@
       <div class="table-shell">
         <div class="table-scroll">
           <table class="ranking-table">
-            <thead>
+            <thead class="sr-only">
               <tr>
-                <th scope="col"><button type="button" data-sort="nickname">Spieler <span></span></button></th>
-                <th scope="col"><button type="button" data-sort="elo">ELO <span></span></button></th>
-                <th scope="col"><button type="button" data-sort="diff">Trend <span></span></button></th>
-                <th scope="col"><button type="button" data-sort="level">Level <span></span></button></th>
-                <th scope="col"><button type="button" data-sort="winrate">Winrate <span></span></button></th>
-                <th scope="col"><button type="button" data-sort="matches">Matches <span></span></button></th>
-                <th scope="col"><button type="button" data-sort="last">Letztes Match <span></span></button></th>
+                <th><button type="button" data-sort="nickname">Spieler</button></th>
+                <th><button type="button" data-sort="elo">ELO</button></th>
+                <th><button type="button" data-sort="diff">Trend</button></th>
+                <th><button type="button" data-sort="level">Level</button></th>
+                <th><button type="button" data-sort="winrate">Winrate</button></th>
+                <th><button type="button" data-sort="matches">Matches</button></th>
+                <th><button type="button" data-sort="last">Letztes Match</button></th>
               </tr>
             </thead>
-            <tbody id="playerTableBody">
-              <!-- INSERT_ELO_TABLE_HERE -->
-            </tbody>
+            <tbody id="playerTableBody"><!-- INSERT_ELO_TABLE_HERE --></tbody>
           </table>
           <div class="empty-state" id="emptyState" hidden>
             <span>Keine Treffer</span>
@@ -163,20 +157,31 @@
       </div>
     </section>
 
+    <section class="shell awards-section" id="standouts" aria-labelledby="awards-title">
+      <div class="section-heading">
+        <div>
+          <p class="kicker">ROLE LEADERS</p>
+          <h2 id="awards-title">Standouts <span>(letzte 30 Matches)</span></h2>
+        </div>
+        <p>Wer aktuell Aim, Output, Siege und Serien kontrolliert.</p>
+      </div>
+      <div id="awards-grid"><!-- INSERT_AWARDS_SECTION --></div>
+    </section>
+
     <section class="comparison-section" id="elo-vergleich" aria-labelledby="comparison-title">
       <div class="comparison-grid" aria-hidden="true"></div>
       <div class="shell">
         <div class="section-heading comparison-heading">
           <div>
-            <p class="kicker">Head to Head</p>
-            <h2 id="comparison-title">ELO-Verlauf vergleichen</h2>
+            <p class="kicker">HEAD TO HEAD</p>
+            <h2 id="comparison-title">Compare Lab <span class="sr-only">ELO-Verlauf vergleichen</span></h2>
           </div>
-          <p>Wähle bis zu fünf Spieler für den direkten Vergleich.</p>
+          <p>Bis zu fünf Spieler auswählen und ELO, Form, K/D und gemeinsame Matches vergleichen.</p>
         </div>
         <div id="comparison-chips" class="comparison-chips" aria-label="Spieler für Vergleich auswählen"></div>
         <div class="chart-panel">
           <div class="chart-meta">
-            <span>Performance Timeline</span>
+            <span>ELO / MATCH SEQUENCE</span>
             <span id="comparison-period-label">Letzte 30 Matches</span>
           </div>
           <div class="chart-wrap">
@@ -185,7 +190,6 @@
           </div>
         </div>
         <div class="comparison-metrics" id="comparison-metrics" aria-live="polite"></div>
-
         <p class="last-update">Last Update: <time><!-- INSERT_LAST_UPDATED --></time></p>
       </div>
     </section>
@@ -229,7 +233,7 @@
   <footer class="site-footer">
     <div class="shell footer-inner">
       <img class="footer-logo" src="icons/levels/uebertreiber_logo.png" alt="Uebertr1eber">
-      <p>Performance-Daten für die Crew. Gebaut für bessere Sessions.</p>
+      <p>FACEIT Team Intelligence · automatisch aktualisiert</p>
       <span class="footer-credit">Dashboard by <a href="https://www.faceit.com/de/players/sha-" target="_blank" rel="noopener noreferrer">sha</a></span>
     </div>
   </footer>

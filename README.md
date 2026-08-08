@@ -1,13 +1,16 @@
-# Uebertr1eber FACEIT Performance Hub
+# Uebertr1eber FACEIT Team Intelligence
 
 Ein automatisch aktualisiertes Performance-Dashboard für die Uebertr1eber-Crew. Es verdichtet FACEIT-Daten zu einem klaren Ranking, aktuellen Formwerten, ELO-Trends und Team-Insights.
 
 ## Funktionen
 
 - Live-Ranking mit Tages-, Wochen-, Monats- und Jahresvergleich
-- Suche und Sortierung nach Spieler, ELO, Trend, Level, Winrate und Aktivität
-- Detailanalyse der letzten 30 Matches
-- K/D, ADR, Headshot-Quote, K/R, Form und Streaks
+- Crew-Pulse mit Durchschnitts-ELO, Aktivität, Form und Top-Mover
+- Suche und Sortierung nach Spieler, ELO, Trend, Form, Winrate, K/D, ADR und Konstanz
+- Dynamische Rollenprofile aus Entry-, Clutch-, Utility-, Aim- und Damage-Daten
+- Detailanalyse der letzten 30, 60 oder 100 Matches
+- K/D, ADR, Headshot-Quote, K/R, Form, Streaks und Konstanz
+- Entry-Erfolg, Clutches, Multikills und Utility-Schaden
 - Map-Performance sowie beste und häufigste Mitspieler
 - Direkter ELO-Verlauf-Vergleich für bis zu fünf Spieler
 - Responsive Bedienung für Desktop, Tablet und Smartphone
