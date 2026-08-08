@@ -65,10 +65,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 /* Deadlock-inspired top bar */
 .site-header { position: relative; z-index: 100; }
-.header-inner { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 28px; border-bottom: 1px solid var(--line); }
+.header-inner { position: relative; min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 28px; border-bottom: 1px solid var(--line); }
 .legacy-brand { width: 266px; height: 62px; display: block; flex: 0 0 auto; overflow: hidden; }
 .legacy-brand img { display: block; width: 176%; max-width: none; transform: translate(-21%, -38%); }
-.primary-nav { display: inline-flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.02); }
+.primary-nav { position: absolute; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.02); }
 .primary-nav a { min-height: 34px; display: inline-flex; align-items: center; padding: 0 15px; border-radius: 999px; color: var(--muted); font-size: 10px; font-weight: 750; transition: color .16s ease, background .16s ease; }
 .primary-nav a:hover { color: var(--text); background: rgba(255,85,0,.08); }
 .header-status { display: grid; grid-template-columns: 7px auto; align-items: center; gap: 6px 9px; color: #bac0c5; font-size: 10px; }
@@ -79,17 +79,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .command-bar {
   min-height: 178px;
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) minmax(330px, 410px);
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 410px);
   align-items: center;
-  gap: 24px;
+  gap: 36px;
   padding: 28px 30px;
   border: 1px solid var(--line);
   border-radius: 24px;
   background: linear-gradient(115deg, rgba(255,85,0,.07), transparent 43%), rgba(13,16,19,.88);
   box-shadow: var(--shadow);
 }
-.team-mark { width: 112px; height: 112px; display: grid; place-items: center; border: 1px solid rgba(255,85,0,.34); border-radius: 21px; background: linear-gradient(145deg, rgba(255,85,0,.16), rgba(255,255,255,.015)); box-shadow: inset 0 0 32px rgba(255,85,0,.07); }
-.team-mark span { color: var(--faceit); font: 800 32px/1 "IBM Plex Mono", monospace; letter-spacing: -.08em; }
 .command-copy { min-width: 0; }
 .command-copy h1 { margin: 10px 0 0; font-size: clamp(38px, 5vw, 66px); line-height: .95; letter-spacing: -.06em; }
 .team-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin-top: 17px; color: var(--muted); font-size: 11px; }
@@ -154,15 +152,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .ranking-table, .ranking-table tbody, .ranking-table tr, .ranking-table td { display: block; width: 100%; }
 .ranking-table { border-collapse: separate; border-spacing: 0; }
 .ranking-table thead { display: none; }
-.ranking-table tbody { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
-.ranking-player-card { min-width: 0; outline: 0; content-visibility: auto; contain-intrinsic-size: auto 315px; }
-.ranking-card { position: relative; min-height: 315px; display: grid; grid-template-columns: 54px minmax(0,1fr) auto; grid-template-rows: auto auto auto; align-content: start; gap: 20px 16px; padding: 24px; border: 1px solid var(--line); border-radius: 19px; background: linear-gradient(135deg, rgba(255,255,255,.035), transparent 60%), var(--panel); transition: transform .18s ease, border-color .18s ease, background .18s ease; overflow: hidden; }
-.ranking-card::after { content: ""; position: absolute; right: -45px; bottom: -75px; width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(circle, rgba(255,85,0,.08), transparent 70%); pointer-events: none; }
-.ranking-player-card:hover .ranking-card, .ranking-player-card:focus-within .ranking-card { transform: translateY(-3px); border-color: rgba(255,85,0,.3); background: linear-gradient(135deg, rgba(255,85,0,.055), transparent 60%), var(--panel); }
+.ranking-table tbody { display: grid; grid-template-columns: 1fr; gap: 9px; }
+.ranking-player-card { min-width: 0; outline: 0; content-visibility: auto; contain-intrinsic-size: auto 126px; }
+.ranking-card { position: relative; min-height: 126px; display: grid; grid-template-columns: 54px minmax(255px,1.15fr) 92px minmax(360px,1.55fr) minmax(170px,.7fr) 42px; align-items: center; gap: 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(105deg, rgba(255,255,255,.03), transparent 55%), var(--panel); transition: transform .18s ease, border-color .18s ease, background .18s ease; overflow: hidden; }
+.ranking-card::after { content: ""; position: absolute; right: -65px; bottom: -95px; width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(circle, rgba(255,85,0,.065), transparent 70%); pointer-events: none; }
+.ranking-player-card:hover .ranking-card, .ranking-player-card:focus-within .ranking-card { transform: translateX(3px); border-color: rgba(255,85,0,.3); background: linear-gradient(105deg, rgba(255,85,0,.045), transparent 55%), var(--panel); }
 .rank-tier-1 .ranking-card { border-color: rgba(255,85,0,.34); box-shadow: inset 2px 0 0 var(--faceit); }
 .rank-tier-2 .ranking-card { box-shadow: inset 2px 0 0 #777e86; }
 .rank-tier-3 .ranking-card { box-shadow: inset 2px 0 0 #8a604b; }
-.ranking-card-rank { position: relative; z-index: 1; display: grid; align-content: start; gap: 4px; color: var(--faceit); }
+.ranking-card-rank { position: relative; z-index: 1; display: grid; align-content: center; justify-items: center; gap: 4px; color: var(--faceit); }
 .ranking-card-rank small { color: var(--quiet); font: 700 8px/1 "IBM Plex Mono", monospace; }
 .ranking-card-rank span { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.06em; }
 .ranking-player { position: relative; z-index: 1; min-width: 0; display: flex; align-items: center; gap: 13px; }
@@ -180,14 +178,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .data-status { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid currentColor; border-radius: 999px; font: 600 7px/1 "IBM Plex Mono", monospace; text-transform: uppercase; white-space: nowrap; }
 .data-status i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
 .data-status.status-fresh { color: var(--mint); }.data-status.status-aging { color: var(--yellow); }.data-status.status-stale { color: var(--red); }
-.ranking-elo { position: relative; z-index: 1; display: grid; justify-items: end; align-content: start; gap: 4px; text-align: right; }
+.ranking-elo { position: relative; z-index: 1; display: grid; justify-items: start; align-content: center; gap: 4px; text-align: left; }
 .ranking-elo small, .ranking-stat-grid small, .ranking-form-block small { color: var(--quiet); font: 700 7px/1 "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .08em; }
 .ranking-elo strong { font: 700 23px/1 "IBM Plex Mono", monospace; letter-spacing: -.05em; }
 .elo-diff { color: var(--muted); font: 650 9px/1 "IBM Plex Mono", monospace; }
-.ranking-stat-grid { position: relative; z-index: 1; grid-column: 1/-1; display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
-.ranking-stat-grid > span { min-height: 58px; display: grid; align-content: center; gap: 7px; padding: 9px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
+.ranking-stat-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+.ranking-stat-grid > span { min-height: 58px; display: grid; align-content: center; gap: 7px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
 .ranking-stat-grid strong { font: 700 12px/1 "IBM Plex Mono", monospace; }
-.ranking-form-block { position: relative; z-index: 1; grid-column: 1/-1; display: grid; gap: 8px; padding-right: 54px; }
+.ranking-form-block { position: relative; z-index: 1; display: grid; gap: 8px; }
 .ranking-form-block > div:first-child, .ranking-form-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ranking-form-block strong { font: 700 10px/1 "IBM Plex Mono", monospace; }
 .player-form { display: flex; gap: 5px; }
@@ -195,7 +193,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .form-dot.win { background: var(--mint); box-shadow: 0 0 8px rgba(99,213,167,.2); }
 .form-dot.loss { background: var(--red); }
 .ranking-form-meta { color: var(--quiet); font: 600 8px/1 "IBM Plex Mono", monospace; }
-.open-player-deep-dive { position: absolute; right: 20px; bottom: 20px; z-index: 2; width: 42px; height: 42px; border: 1px solid rgba(255,85,0,.3); border-radius: 11px; color: var(--faceit-soft); background: rgba(255,85,0,.08); font-size: 16px; }
+.open-player-deep-dive { position: relative; z-index: 2; width: 42px; height: 42px; border: 1px solid rgba(255,85,0,.3); border-radius: 11px; color: var(--faceit-soft); background: rgba(255,85,0,.08); font-size: 16px; }
 .open-player-deep-dive:hover { color: #110f0d; background: var(--faceit); }
 .open-player-deep-dive span { position: absolute; width: 1px; height: 1px; overflow: hidden; }
 .open-player-deep-dive b { font-weight: 500; }
@@ -302,13 +300,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 @media (max-width: 1180px) {
   :root { --shell: min(100% - 44px, 1100px); }
-  .command-bar { grid-template-columns: 92px minmax(0,1fr) 340px; }
-  .team-mark { width: 92px; height: 92px; }
+  .command-bar { grid-template-columns: minmax(0,1fr) 340px; }
   .squad-pulse { grid-template-columns: repeat(2,1fr); }
-  .ranking-table tbody { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ranking-card { grid-template-columns: 50px minmax(220px,1fr) 86px minmax(315px,1.4fr) minmax(150px,.7fr) 42px; gap: 12px; }
   .award-grid { grid-template-columns: repeat(2,1fr); }
   .deep-profile-strip { grid-template-columns: 1.4fr repeat(2,1fr); }
   .deep-insights, .highlight-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+@media (max-width: 980px) {
+  .ranking-player-card { contain-intrinsic-size: auto 286px; }
+  .ranking-card { min-height: 286px; grid-template-columns: 46px minmax(0,1fr) auto; grid-template-rows: auto auto auto; align-content: start; gap: 16px 12px; padding: 20px; }
+  .ranking-card-rank { align-content: start; }
+  .ranking-elo { justify-items: end; align-content: start; text-align: right; }
+  .ranking-stat-grid { grid-column: 1/-1; grid-template-columns: repeat(5,1fr); }
+  .ranking-form-block { grid-column: 1/-1; padding-right: 52px; }
+  .open-player-deep-dive { position: absolute; right: 18px; bottom: 18px; }
 }
 
 @media (max-width: 800px) {
@@ -318,8 +325,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .primary-nav { display: none; }
   .header-status time { display: none; }
   .first-section { margin-top: 24px; }
-  .command-bar { min-height: 0; grid-template-columns: 70px 1fr; gap: 16px; padding: 20px; border-radius: 19px; }
-  .team-mark { width: 70px; height: 70px; border-radius: 15px; }.team-mark span { font-size: 22px; }
+  .command-bar { min-height: 0; grid-template-columns: 1fr; gap: 16px; padding: 20px; border-radius: 19px; }
   .command-copy h1 { font-size: 34px; }.team-meta { gap: 7px 12px; margin-top: 11px; }.team-meta span:not(:last-child)::after { display: none; }
   .analysis-selector { grid-column: 1/-1; min-height: 0; }
   .squad-pulse { grid-template-columns: repeat(2,1fr); gap: 8px; }.pulse-card { min-height: 138px; padding: 17px; }.pulse-card strong { font-size: 27px; }.pulse-primary::before { left: 17px; right: 17px; bottom: 17px; }
@@ -328,7 +334,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .toolbar { grid-template-columns: 1fr; }.toolbar-actions { display: grid; }.sort-control { min-width: 0; }.range-control { min-height: 52px; overflow-x: auto; }.time-filter { flex: 1; min-width: 62px; }
   .insights-strip { grid-template-columns: repeat(2,1fr); }
   .ranking-table tbody, .award-grid { grid-template-columns: 1fr; }
-  .ranking-card { min-height: 300px; }
   .comparison-section { margin-top: 64px; }.chart-wrap { height: 300px; }
   .player-deep-dive { padding: 0; }.deep-dive-panel { width: 100%; height: 100%; border: 0; border-radius: 0; }
   .deep-dive-header { min-height: 92px; padding: 14px; }.deep-dive-avatar { width: 54px; height: 54px; }.deep-dive-player h2 { font-size: 20px; }.deep-dive-country span, .deep-dive-actions > a { display: none; }.deep-dive-periods button { min-width: 34px; }
@@ -342,7 +347,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 @media (max-width: 520px) {
   .squad-pulse, .insights-strip { grid-template-columns: 1fr; }
-  .ranking-card { grid-template-columns: 42px minmax(0,1fr); gap: 16px 10px; padding: 18px; }
+  .ranking-player-card { contain-intrinsic-size: auto 305px; }
+  .ranking-card { min-height: 305px; grid-template-columns: 42px minmax(0,1fr); grid-template-rows: auto auto auto auto; gap: 16px 10px; padding: 18px; }
   .ranking-card-rank span { font-size: 27px; }.ranking-player { grid-column: 2; }.ranking-avatar { width: 50px; height: 50px; flex-basis: 50px; }.data-status { display: none; }
   .ranking-elo { grid-column: 1/-1; grid-row: 2; justify-items: start; text-align: left; }.ranking-stat-grid { grid-row: 3; grid-template-columns: repeat(3,1fr); }.ranking-stat-grid > span:nth-child(n+4) { display: none; }.ranking-form-block { grid-row: 4; }
 }
