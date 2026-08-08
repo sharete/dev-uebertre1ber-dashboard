@@ -1196,6 +1196,8 @@
 
   const detailPeriodData = detail => detail?.periods?.[String(state.analysisPeriod)] || detail?.periods?.["30"] || {};
   const detailMatches = detail => (detail?.matches || []).slice(0, state.analysisPeriod);
+  const resultMatchesEloDiff = (result, diff, allowZero = false) => Number.isFinite(diff)
+    && (allowZero && diff === 0 || result === "W" && diff > 0 || result === "L" && diff < 0);
 
   const enrichDetailEloDiffs = detail => {
     if (!detail || !Array.isArray(detail.history) || !Array.isArray(detail.matches)) return detail;
@@ -1206,22 +1208,17 @@
           date: rawDate > 1e12 ? Math.floor(rawDate / 1000) : Math.floor(rawDate),
           elo: number(point?.elo ?? point?.i20, NaN),
           eloDiff: number(point?.eloDiff ?? point?.elo_delta, NaN),
+          eloDiffSource: text(point?.eloDiffSource),
           matchId: text(point?.matchId ?? point?.match_id)
         };
       })
       .filter(point => Number.isFinite(point.date) && Number.isFinite(point.elo))
       .sort((a, b) => a.date - b.date);
 
-    for (let index = 1; index < points.length; index++) {
-      if (Number.isFinite(points[index].eloDiff)) continue;
-      points[index].eloDiff = points[index].elo - points[index - 1].elo;
-    }
-
     const pointsByMatch = new Map(points.filter(point => point.matchId).map(point => [point.matchId, point]));
+    const pointIndexes = new Map(points.map((point, index) => [point, index]));
     const claimedPoints = new Set();
     detail.matches = detail.matches.map(match => {
-      const hasEloDiff = match.eloDiff !== null && match.eloDiff !== "" && Number.isFinite(Number(match.eloDiff));
-      if (hasEloDiff) return match;
       const matchDate = number(match.date, NaN);
       let point = pointsByMatch.get(text(match.matchId));
       if (!point && Number.isFinite(matchDate)) {
@@ -1232,9 +1229,40 @@
         }, null);
         point = closest && closest.distance <= 5 * 60 ? closest.point : null;
       }
-      if (!point || !Number.isFinite(point.eloDiff)) return match;
+      if (!point) return { ...match, eloDiff: undefined, eloDiffSource: undefined };
       claimedPoints.add(point);
-      return { ...match, elo: Number.isFinite(Number(match.elo)) ? match.elo : point.elo, eloDiff: point.eloDiff };
+      const directIsFaceit = point.eloDiffSource === "faceit";
+      const pointIndex = pointIndexes.get(point);
+      const previousPoint = pointIndex > 0 ? points[pointIndex - 1] : null;
+      const isExactFaceitMatch = point.matchId === text(match.matchId);
+      const matchesInInterval = previousPoint
+        ? detail.matches.filter(item => number(item.date, NaN) > previousPoint.date && number(item.date, NaN) <= point.date).length
+        : 0;
+      const hasReliableMapping = isExactFaceitMatch || Boolean(previousPoint && matchesInInterval === 1);
+      const directIsPlausible = hasReliableMapping
+        && Math.abs(point.eloDiff) > 0
+        && Math.abs(point.eloDiff) <= 50
+        && resultMatchesEloDiff(match.result, point.eloDiff, directIsFaceit);
+      let eloDiff = directIsPlausible ? point.eloDiff : undefined;
+      let source = Number.isFinite(eloDiff) ? (directIsFaceit ? "faceit" : "derived") : undefined;
+
+      if (!Number.isFinite(eloDiff) && previousPoint) {
+          const derivedDiff = point.elo - previousPoint.elo;
+          if (hasReliableMapping
+            && Math.abs(derivedDiff) > 0
+            && Math.abs(derivedDiff) <= 50
+            && resultMatchesEloDiff(match.result, derivedDiff)) {
+            eloDiff = derivedDiff;
+            source = "derived";
+          }
+      }
+
+      return {
+        ...match,
+        elo: Number.isFinite(Number(match.elo)) ? match.elo : point.elo,
+        eloDiff,
+        eloDiffSource: source
+      };
     });
     return detail;
   };
@@ -1340,15 +1368,21 @@
     const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
     state.deepDive.matchPage = Math.min(state.deepDive.matchPage, pages);
     const page = filtered.slice((state.deepDive.matchPage - 1) * pageSize, state.deepDive.matchPage * pageSize);
-    const rows = page.map(match => `<tr>
+    const rows = page.map(match => {
+      const eloDiff = Number(match.eloDiff);
+      const hasEloDiff = Number.isFinite(eloDiff);
+      const eloDiffLabel = hasEloDiff ? `${eloDiff > 0 ? "+" : ""}${eloDiff}` : "—";
+      const eloDiffClass = hasEloDiff ? (eloDiff >= 0 ? "positive" : "negative") : "elo-unavailable";
+      return `<tr>
       <td><span class="match-result result-${match.result === "W" ? "win" : "loss"}">${match.result === "W" ? "Sieg" : "Niederlage"}</span></td>
       <td>${escapeUi(formatMatchDate(match.date))}</td><td><strong>${escapeUi(match.map || "Unknown")}</strong></td><td>${escapeUi(match.score || "—")}</td>
       <td>${number(match.kills)}</td><td>${number(match.assists)}</td><td>${number(match.deaths)}</td>
       <td class="${number(match.kills) - number(match.deaths) >= 0 ? "positive" : "negative"}">${number(match.kills) - number(match.deaths) > 0 ? "+" : ""}${number(match.kills) - number(match.deaths)}</td>
       <td>${number(match.kd).toFixed(2)}</td><td>${number(match.adr).toFixed(1)}</td><td>${number(match.hsPercent).toFixed(0)}%</td>
-      <td class="${number(match.eloDiff) >= 0 ? "positive" : "negative"}">${Number.isFinite(Number(match.eloDiff)) ? `${number(match.eloDiff) > 0 ? "+" : ""}${number(match.eloDiff)}` : "—"}</td>
+      <td class="${eloDiffClass}" ${hasEloDiff ? "" : 'title="FACEIT stellt für dieses Match keine eindeutige ELO-Änderung bereit"'}>${eloDiffLabel}</td>
       <td><a class="match-link" href="${escapeUi(safeHttp(match.matchUrl))}" target="_blank" rel="noopener noreferrer" aria-label="Match auf FACEIT öffnen">↗</a></td>
-    </tr>`).join("");
+    </tr>`;
+    }).join("");
     content.innerHTML = `
       <section class="deep-section-head"><div><span>Match Explorer</span><h3>Die letzten ${state.analysisPeriod} Matches</h3></div><p>${filtered.length} von ${all.length} Matches</p></section>
       <div class="match-filters">
@@ -1356,7 +1390,7 @@
         <label><span>Map</span><select data-match-map><option value="all">Alle Maps</option>${maps.map(map => `<option value="${escapeUi(map)}" ${map === state.deepDive.map ? "selected" : ""}>${escapeUi(map)}</option>`).join("")}</select></label>
         <label><span>Ergebnis</span><select data-match-result><option value="all">Alle</option><option value="W" ${state.deepDive.result === "W" ? "selected" : ""}>Siege</option><option value="L" ${state.deepDive.result === "L" ? "selected" : ""}>Niederlagen</option></select></label>
       </div>
-      <div class="deep-table-scroll"><table class="deep-table match-table"><thead><tr><th>Resultat</th><th>Datum</th><th>Map</th><th>Score</th><th>K</th><th>A</th><th>D</th><th>+/-</th><th>K/D</th><th>ADR</th><th>HS</th><th>ELO</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="13" class="deep-empty">Keine Matches für diesen Filter.</td></tr>'}</tbody></table></div>
+      <div class="deep-table-scroll"><table class="deep-table match-table"><thead><tr><th>Resultat</th><th>Datum</th><th>Map</th><th>Score</th><th>K</th><th>A</th><th>D</th><th>+/-</th><th>K/D</th><th>ADR</th><th>HS</th><th title="ELO-Änderung nach dem Match">ELO Δ</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="13" class="deep-empty">Keine Matches für diesen Filter.</td></tr>'}</tbody></table></div>
       <div class="deep-pagination"><button type="button" data-match-page="prev" ${state.deepDive.matchPage === 1 ? "disabled" : ""}>← Zurück</button><span>Seite ${state.deepDive.matchPage} von ${pages}</span><button type="button" data-match-page="next" ${state.deepDive.matchPage === pages ? "disabled" : ""}>Weiter →</button></div>`;
     content.querySelector("[data-match-query]")?.addEventListener("input", event => {
       const query = event.target.value;

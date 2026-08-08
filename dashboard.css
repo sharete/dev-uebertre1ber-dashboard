@@ -62,6 +62,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(99,213,167,.1); }
 .positive { color: var(--mint) !important; }
 .negative { color: var(--red) !important; }
+.elo-unavailable { color: var(--quiet) !important; }
 
 /* Deadlock-inspired top bar */
 .site-header { position: relative; z-index: 100; }

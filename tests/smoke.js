@@ -90,6 +90,8 @@ assert.match(dashboardScript, /performanceProfile/);
 assert.doesNotMatch(dashboardScript, /renderSynergies|synergy-grid/);
 assert.match(dashboardScript, /loadPlayerDetail/);
 assert.match(dashboardScript, /enrichDetailEloDiffs/);
+assert.match(dashboardScript, /resultMatchesEloDiff/);
+assert.match(dashboardScript, /ELO Δ/);
 assert.match(dashboardScript, /renderDeepMatches/);
 assert.match(dashboardScript, /renderDeepMaps/);
 assert.doesNotMatch(dashboardScript, /navigator\.share|navigator\.clipboard|data-share-player/);
@@ -195,9 +197,9 @@ const normalizedStats = stats.calculatePlayerStats("player-1", [], {}, [
 assert.deepEqual(
   normalizedStats.eloHistory,
   [
-    { date: 1767261600, elo: 1450, eloDiff: undefined },
-    { date: 1767265200, elo: 1480, eloDiff: 30 },
-    { date: 1767268800, elo: 1500, eloDiff: 20 }
+    { date: 1767261600, elo: 1450, eloDiff: undefined, eloDiffSource: undefined },
+    { date: 1767265200, elo: 1480, eloDiff: undefined, eloDiffSource: undefined },
+    { date: 1767268800, elo: 1500, eloDiff: 20, eloDiffSource: "faceit" }
   ],
   "ELO history should accept both FACEIT history formats and remain chronological"
 );
@@ -247,6 +249,26 @@ assert.equal(
   60
 );
 assert.ok(Array.isArray(analyzedStats.insights));
+
+const unreliableEloHistory = [
+  { match_id: "1-win-zero", finished_at: 1767276000, results: { winner: "faction1" }, teams: { faction1: { players: [{ player_id: "player-1" }] } } },
+  { match_id: "1-loss-positive", finished_at: 1767272400, results: { winner: "faction2" }, teams: { faction1: { players: [{ player_id: "player-1" }] } } },
+  { match_id: "1-loss-aggregate", finished_at: 1767268800, results: { winner: "faction2" }, teams: { faction1: { players: [{ player_id: "player-1" }] } } }
+];
+const unreliableMatchStats = Object.fromEntries(unreliableEloHistory.map(match => [
+  match.match_id,
+  { __mapName: "Mirage", "player-1": { Kills: 10, Deaths: 10, Assists: 2, ADR: 70, __rounds: 20 } }
+]));
+const sanitizedEloStats = stats.calculatePlayerStats("player-1", unreliableEloHistory, unreliableMatchStats, [
+  { date: 1767268800, elo: 1500, elo_delta: -61, matchId: "1-loss-aggregate" },
+  { date: 1767272400, elo: 1525, elo_delta: 25, matchId: "1-loss-positive" },
+  { date: 1767276000, elo: 1525, elo_delta: 0, matchId: "1-win-zero" }
+]);
+assert.deepEqual(
+  sanitizedEloStats.matchHistory.map(match => match.eloDiff),
+  [undefined, undefined, undefined],
+  "zero, aggregate and result-inverted ELO changes must not be presented as match deltas"
+);
 
 const freshnessNow = 2_000_000_000;
 assert.equal(stats.getDataFreshness(freshnessNow - 168 * 3600, freshnessNow).status, "fresh");

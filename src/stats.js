@@ -262,7 +262,8 @@ class StatsCalculator {
                 const normalized = {
                     date,
                     elo,
-                    eloDiff: Number.isFinite(parsedDiff) ? parsedDiff : undefined
+                    eloDiff: Number.isFinite(parsedDiff) ? parsedDiff : undefined,
+                    eloDiffSource: Number.isFinite(parsedDiff) ? "faceit" : undefined
                 };
                 const matchId = item.matchId ?? item.match_id;
                 const map = item.map ?? item.i1;
@@ -284,20 +285,14 @@ class StatsCalculator {
             .filter((item, index, items) => index === 0 || item.date !== items[index - 1].date)
             .slice(-300);
 
-        // Some FACEIT history responses expose only the ELO total after a match.
-        // Derive the missing delta from the preceding chronological sample so
-        // match rows remain useful even when `elo_delta` is omitted upstream.
-        for (let index = 1; index < eloHistory.length; index++) {
-            if (Number.isFinite(eloHistory[index].eloDiff)) continue;
-            const derivedDiff = eloHistory[index].elo - eloHistory[index - 1].elo;
-            if (Number.isFinite(derivedDiff)) eloHistory[index].eloDiff = derivedDiff;
-        }
-
         // Prefer FACEIT's match ID. Locally captured fallback points have no ID,
         // but use the exact completion timestamp; keep their tolerance narrow and
         // consume each point once so one aggregate change is never shown twice.
         const eloPointsByMatch = new Map(eloHistory.filter(point => point.matchId).map(point => [point.matchId, point]));
+        const eloPointIndexes = new Map(eloHistory.map((point, index) => [point, index]));
         const claimedEloPoints = new Set();
+        const resultMatchesDiff = (result, diff, allowZero = false) => Number.isFinite(diff)
+            && (allowZero && diff === 0 || result === "W" && diff > 0 || result === "L" && diff < 0);
         for (const match of detailedHistory) {
             const matchDate = Number(match.date);
             let matchedPoint = eloPointsByMatch.get(match.matchId);
@@ -310,7 +305,35 @@ class StatsCalculator {
             if (matchedPoint) {
                 claimedEloPoints.add(matchedPoint);
                 match.elo = matchedPoint.elo;
-                match.eloDiff = matchedPoint.eloDiff;
+                const directDiff = Number(matchedPoint.eloDiff);
+                const directIsFaceit = matchedPoint.eloDiffSource === "faceit";
+                const pointIndex = eloPointIndexes.get(matchedPoint);
+                const previousPoint = pointIndex > 0 ? eloHistory[pointIndex - 1] : null;
+                const isExactFaceitMatch = matchedPoint.matchId === match.matchId;
+                const matchesInInterval = previousPoint
+                    ? detailedHistory.filter(item => item.date > previousPoint.date && item.date <= matchedPoint.date).length
+                    : 0;
+                const hasReliableMapping = isExactFaceitMatch || Boolean(previousPoint && matchesInInterval === 1);
+                if (hasReliableMapping
+                    && Math.abs(directDiff) > 0
+                    && Math.abs(directDiff) <= 50
+                    && resultMatchesDiff(match.result, directDiff, directIsFaceit)) {
+                    match.eloDiff = directDiff;
+                    match.eloDiffSource = directIsFaceit ? "faceit" : "derived";
+                    continue;
+                }
+
+                if (!previousPoint) continue;
+                const derivedDiff = matchedPoint.elo - previousPoint.elo;
+                if (hasReliableMapping
+                    && Math.abs(derivedDiff) > 0
+                    && Math.abs(derivedDiff) <= 50
+                    && resultMatchesDiff(match.result, derivedDiff)) {
+                    matchedPoint.eloDiff = derivedDiff;
+                    matchedPoint.eloDiffSource = "derived";
+                    match.eloDiff = derivedDiff;
+                    match.eloDiffSource = "derived";
+                }
             }
         }
 
