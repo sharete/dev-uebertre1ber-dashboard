@@ -69898,55 +69898,6 @@
   "e457a9b3-9029-4a33-bccd-ab4e2ffd505f": [
     {
       "_id": {
-        "matchId": "696b8b3bae1231705d16139b",
-        "playerId": "e457a9b3-9029-4a33-bccd-ab4e2ffd505f"
-      },
-      "created_at": 1768655675824,
-      "updated_at": 1768655766473,
-      "i10": "0",
-      "i13": "1",
-      "i15": "0",
-      "i14": "0",
-      "i16": "0",
-      "nickname": "_Gianni",
-      "playerId": "e457a9b3-9029-4a33-bccd-ab4e2ffd505f",
-      "i40": "2",
-      "i20": "1144",
-      "i6": "11",
-      "i7": "2",
-      "i8": "16",
-      "i9": "0",
-      "c10": "60.2",
-      "c2": "0.69",
-      "c3": "0.58",
-      "c4": "9",
-      "c1": "1",
-      "i19": "0",
-      "teamId": "9e052fbf-5431-49ff-8650-1dcb5d4dda4b",
-      "i3": "4",
-      "i4": "2",
-      "i5": "team_mrc",
-      "premade": false,
-      "c5": "6",
-      "bestOf": "1",
-      "competitionId": "f4148ddd-bce8-41b8-9131-ee83afcdd6dd",
-      "date": 1768655675000,
-      "game": "cs2",
-      "gameMode": "5v5",
-      "i0": "EU",
-      "i1": "de_ancient",
-      "i12": "19",
-      "i18": "6 / 13",
-      "i2": "bdc5678d-fbbc-4e0c-85bc-8034a949161f",
-      "matchId": "1-94531eba-3c72-43d8-9891-f464caf4d9fe",
-      "matchRound": "1",
-      "played": "1",
-      "status": "APPLIED",
-      "elo": "2105",
-      "elo_delta": "-30"
-    },
-    {
-      "_id": {
         "matchId": "696b83202c68b7805c350304",
         "playerId": "e457a9b3-9029-4a33-bccd-ab4e2ffd505f"
       },
@@ -72130,6 +72081,10 @@
     {
       "date": 1786303802000,
       "elo": "2037"
+    },
+    {
+      "date": 1786402097000,
+      "elo": "2067"
     }
   ],
   "7c07eb9d-3244-4409-af92-b307b4c82113": [
