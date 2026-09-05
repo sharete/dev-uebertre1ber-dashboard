@@ -284,3 +284,14 @@ assert.equal(stats.calculatePlayerStats("player-1", [], {}, twentyNineEloPoints)
 assert.equal(stats.calculatePlayerStats("player-1", [], {}, thirtyEloPoints).personalBests.bestThirtyGain, 145);
 
 console.log("Dashboard smoke tests passed.");
+
+// Awards must render when the minimum-deaths reduction has no winner yet.
+const awardFunction = dashboardScript.slice(dashboardScript.indexOf("  const renderPeriodAwards ="), dashboardScript.indexOf("  const setupAnalysisPeriod ="));
+for (const players of [[], [{ nickname: "First", recent: { matches: 30, deaths: 300 } }], [{ nickname: "No matches", recent: { matches: 0 } }]]) {
+  require("node:vm").runInNewContext(awardFunction + "renderPeriodAwards();", {
+    window: { COMPARISON_DATA: players },
+    periodData: player => player,
+    number: (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback,
+    document: { querySelectorAll: () => [] }
+  });
+}

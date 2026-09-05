@@ -281,6 +281,8 @@
       container.append(article);
     });
     container.hidden = !unique.length;
+    const insightsToggle = document.getElementById("insights-toggle");
+    if (insightsToggle) insightsToggle.hidden = unique.length < 2;
   };
 
   const normalizeHistory = (rawHistory, limit = 100) => {
@@ -968,7 +970,7 @@
     const lowest = candidates
       .filter(candidate => number(candidate.data.recent?.matches) > 0)
       .reduce((winner, candidate) =>
-        number(candidate.data.recent?.deaths, Infinity) < number(winner.data?.recent?.deaths, Infinity) ? candidate : winner,
+        number(candidate.data.recent?.deaths, Infinity) < number(winner?.data?.recent?.deaths, Infinity) ? candidate : winner,
       null);
     const awardValues = [
       [best(data => number(data.recent?.kd)), data => `${number(data.recent?.kd).toFixed(2)} K/D`],
@@ -1571,6 +1573,42 @@
     else void renderComparison();
   };
 
+  // Progressive disclosure only changes presentation; underlying stats stay intact.
+  const setupOverviewDisclosure = () => {
+    const wire = (buttonId, targetId, className, collapsed, expanded) => {
+      const button = document.getElementById(buttonId);
+      const target = document.getElementById(targetId);
+      if (!button || !target) return;
+      button.addEventListener("click", () => {
+        const open = target.classList.toggle(className);
+        button.setAttribute("aria-expanded", String(open));
+        button.textContent = open ? expanded : collapsed;
+      });
+    };
+    wire("metrics-toggle", "playerTableBody", "show-metrics", "Mehr Kennzahlen", "Kompakte Ansicht");
+    wire("insights-toggle", "global-insights", "show-all", "Weitere Auffälligkeiten", "Weniger Auffälligkeiten");
+    wire("awards-toggle", "awards-grid", "show-all", "Alle Auszeichnungen anzeigen", "Weniger Auszeichnungen");
+    const context = document.getElementById("filter-context");
+    const updateContext = () => {
+      const range = document.querySelector(".time-filter.active")?.textContent || "Heute";
+      if (context) context.textContent = `ELO: ${range} · ${state.analysisPeriod} Matches`;
+    };
+    document.querySelectorAll(".time-filter, [data-analysis-period]").forEach(button => button.addEventListener("click", updateContext));
+    const comparison = document.getElementById("comparison-disclosure");
+    comparison?.addEventListener("toggle", () => {
+      if (comparison.open) void renderComparison();
+    });
+    const openComparison = () => {
+      if (location.hash === "#elo-vergleich" && comparison) comparison.open = true;
+    };
+    document.querySelectorAll('a[href="#elo-vergleich"]').forEach(link => link.addEventListener("click", () => {
+      if (comparison) comparison.open = true;
+    }));
+    window.addEventListener("hashchange", openComparison);
+    openComparison();
+    updateContext();
+  };
+
   createComparisonChips();
   waitForCharts();
   upgradeInterfaceIcons();
@@ -1580,6 +1618,7 @@
   setupSorting();
   setupAnalysisPeriod();
   setupDeepDive();
+  setupOverviewDisclosure();
   updateDiffs();
   sortRows();
   renderPeriodAwards();
