@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070809">
   <meta name="color-scheme" content="dark">
-  <title>Uebertr1eber — FACEIT Team Dashboard</title>
-  <meta name="description" content="Live Ranking, Form, Rollenprofile und Match-Analysen der Uebertr1eber-Crew.">
+  <title>Uebertre1ber — FACEIT-Dashboard</title>
+  <meta name="description" content="Ranking, Form, Spielprofile und Match-Analysen der Uebertre1ber-Crew.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Uebertr1eber — FACEIT Team Dashboard">
-  <meta property="og:description" content="ELO, Form, Rollenprofile und Match-Intelligence der Crew.">
+  <meta property="og:title" content="Uebertre1ber — FACEIT-Dashboard">
+  <meta property="og:description" content="ELO, Form und Match-Statistiken im Vergleich.">
   <meta property="og:image" content="https://sharete.github.io/dev-uebertre1ber-dashboard/og.png">
-  <meta property="og:image:alt" content="Uebertr1eber FACEIT Team Intelligence">
+  <meta property="og:image:alt" content="Uebertre1ber FACEIT-Statistiken">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Uebertr1eber — FACEIT Team Dashboard">
-  <meta name="twitter:description" content="Das Live Performance-System der Uebertr1eber-Crew.">
+  <meta name="twitter:title" content="Uebertre1ber — FACEIT-Dashboard">
+  <meta name="twitter:description" content="FACEIT-Statistiken der Uebertre1ber-Crew.">
   <meta name="twitter:image" content="https://sharete.github.io/dev-uebertre1ber-dashboard/og.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,21 +24,21 @@
   <link rel="stylesheet" href="dashboard.css?v=<!-- INSERT_ASSET_VERSION -->">
 </head>
 <body>
-  <a class="skip-link" href="#leaderboard">Zum Squad springen</a>
+  <a class="skip-link" href="#leaderboard">Zum Ranking springen</a>
 
   <header class="site-header">
     <div class="header-inner shell">
-      <a class="legacy-brand" href="#top" aria-label="Uebertr1eber Startseite">
-        <img src="icons/levels/uebertreiber_logo.png" alt="Uebertr1eber ELO Dashboard">
+      <a class="legacy-brand" href="#top" aria-label="Uebertre1ber Startseite">
+        <img src="icons/levels/uebertreiber_logo.png" alt="Uebertre1ber ELO Dashboard">
       </a>
       <nav class="primary-nav" aria-label="Hauptnavigation">
         <a href="#leaderboard">Spieler</a>
-        <a href="#standouts">Leaders</a>
+        <a href="#standouts">Bestwerte</a>
         <a href="#elo-vergleich">Vergleich</a>
       </nav>
       <div class="header-status">
         <span class="live-dot" aria-hidden="true"></span>
-        <span>Live Data</span>
+        <span>Zuletzt aktualisiert</span>
         <time><!-- INSERT_LAST_UPDATED --></time>
       </div>
     </div>
@@ -47,41 +47,39 @@
   <main id="top">
     <section class="shell command-bar first-section" aria-labelledby="dashboard-title">
       <div class="command-copy">
-        <p class="kicker">FACEIT TEAM DASHBOARD</p>
+        <p class="kicker">FACEIT-STATS</p>
         <h1 id="dashboard-title">Uebertre1ber</h1>
         <div class="team-meta">
           <span><!-- INSERT_PLAYER_COUNT --> Spieler</span>
           <span>Counter-Strike 2</span>
-          <span>Live Performance Tracking</span>
         </div>
       </div>
 
     </section>
 
-    <section class="shell squad-pulse" aria-label="Team Performance">
+    <section class="shell squad-pulse" aria-label="Teamübersicht">
       <article class="pulse-card pulse-primary">
-        <span>Team ELO</span>
+        <span>Ø ELO</span>
         <strong id="crew-average">—</strong>
         <small>Durchschnitt aller Spieler</small>
       </article>
       <article class="pulse-card">
-        <span>Aktiv</span>
+        <span>Aktiv · letzte 7 Tage</span>
         <strong><b id="squad-active-count">0</b>/<b><!-- INSERT_PLAYER_COUNT --></b></strong>
-        <small>Match innerhalb einer Woche</small>
+        <small>Mindestens ein Match gespielt</small>
       </article>
 
       <article class="pulse-card">
-        <span>Top Mover</span>
+        <span>Bester ELO-Trend</span>
         <strong id="squad-top-mover">—</strong>
-        <small id="squad-top-mover-diff">±0 im Zeitraum</small>
+        <small id="squad-top-mover-diff">±0 ELO im Zeitraum</small>
       </article>
     </section>
 
     <section class="shell leaderboard-section" id="leaderboard" aria-labelledby="leaderboard-title">
       <div class="section-heading leaderboard-heading">
         <div>
-          <p class="kicker">PLAYER PERFORMANCE</p>
-          <h2 id="leaderboard-title">Dein Squad</h2>
+          <h2 id="leaderboard-title">Ranking</h2>
         </div>
         <p>Spieler öffnen für die vollständige Analyse.</p>
       </div>
@@ -112,7 +110,7 @@
 
       <div class="ranking-options">
         <details class="filter-disclosure" id="ranking-filters">
-          <summary>Filter & Analyse <span id="filter-context">ELO: Heute · 30 Matches</span></summary>
+          <summary>Zeiträume <span id="filter-context">ELO: Heute · 30 Matches</span></summary>
           <div class="filter-content">
             <div class="filter-range"><span>ELO-Veränderung</span>          <div class="range-control" role="group" aria-label="Zeitraum für ELO-Veränderung">
             <button class="time-filter active" type="button" data-val="daily" aria-pressed="true">Heute</button>
@@ -122,9 +120,9 @@
           </div></div>
       <div class="analysis-selector">
         <div>
-          <span>Analysezeitraum</span>
+          <span>Ausgewertete Matches</span>
           <strong id="analysis-period-copy">Letzte 30 Matches</strong>
-          <small>Gilt für Spielerwerte und Leaders</small>
+          <small>Gilt für Spielerwerte und Bestwerte</small>
         </div>
         <div class="analysis-period-control" role="group" aria-label="Anzahl der analysierten Matches">
           <button class="analysis-period active" type="button" data-analysis-period="30" aria-pressed="true">30</button>
@@ -133,7 +131,7 @@
         </div>
       </div>
             <div class="team-form-detail">      <article class="pulse-card">
-        <span>Positive Form</span>
+        <span>Spieler in guter Form</span>
         <strong id="squad-positive-form">0</strong>
         <small>mindestens 3 Siege aus 5</small>
       </article></div>
@@ -142,8 +140,8 @@
         <button type="button" class="disclosure-button" id="metrics-toggle" aria-expanded="false" aria-controls="playerTableBody">Mehr Kennzahlen</button>
       </div>
       <div class="insights-summary">
-      <div class="insights-strip" id="global-insights" aria-label="Automatische Auffälligkeiten"></div>
-        <button type="button" class="disclosure-button" id="insights-toggle" aria-expanded="false" aria-controls="global-insights" hidden>Weitere Auffälligkeiten</button>
+      <div class="insights-strip" id="global-insights" aria-label="Aktuelle Trends"></div>
+        <button type="button" class="disclosure-button" id="insights-toggle" aria-expanded="false" aria-controls="global-insights" hidden>Weitere Trends</button>
       </div>
 
       <div class="table-shell">
@@ -177,8 +175,7 @@
     <section class="shell awards-section" id="standouts" aria-labelledby="awards-title">
       <div class="section-heading">
         <div>
-          <p class="kicker">TEAM INTELLIGENCE</p>
-          <h2 id="awards-title">Performance Leaders <span>(letzte 30 Matches)</span></h2>
+          <h2 id="awards-title">Bestwerte <span>(letzte 30 Matches)</span></h2>
         </div>
         <p>Die stärksten messbaren Leistungen innerhalb des gewählten Zeitraums.</p>
       </div>
@@ -193,7 +190,6 @@
         <div class="comparison-content">
         <div class="section-heading comparison-heading">
           <div>
-            <p class="kicker">PROGRESSION</p>
             <h2 id="comparison-title">ELO vergleichen <span class="sr-only">ELO-Verlauf vergleichen</span></h2>
           </div>
           <p>Bis zu fünf Spieler auswählen und ELO, Form, K/D und gemeinsame Matches vergleichen.</p>
@@ -201,7 +197,7 @@
         <div id="comparison-chips" class="comparison-chips" aria-label="Spieler für Vergleich auswählen"></div>
         <div class="chart-panel">
           <div class="chart-meta">
-            <span>ELO / MATCH SEQUENCE</span>
+            <span>ELO / MATCH-VERLAUF</span>
             <span id="comparison-period-label">Letzte 30 Matches</span>
           </div>
           <div class="chart-wrap">
@@ -210,7 +206,7 @@
           </div>
         </div>
         <div class="comparison-metrics" id="comparison-metrics" aria-live="polite"></div>
-        <p class="last-update">Last Update: <time><!-- INSERT_LAST_UPDATED --></time></p>
+        <p class="last-update">Zuletzt aktualisiert: <time><!-- INSERT_LAST_UPDATED --></time></p>
         </div>
       </details>
     </section>
@@ -229,7 +225,7 @@
           </div>
         </div>
         <div class="deep-dive-actions">
-          <div class="deep-dive-periods" role="group" aria-label="Analysezeitraum im Spielerprofil">
+          <div class="deep-dive-periods" role="group" aria-label="Ausgewertete Matches im Spielerprofil">
             <button type="button" data-deep-period="30">30</button>
             <button type="button" data-deep-period="60">60</button>
             <button type="button" data-deep-period="100">100</button>
@@ -242,7 +238,7 @@
         <button type="button" role="tab" data-deep-tab="overview" aria-selected="true">Übersicht</button>
         <button type="button" role="tab" data-deep-tab="matches" aria-selected="false">Matches</button>
         <button type="button" role="tab" data-deep-tab="maps" aria-selected="false">Maps</button>
-        <button type="button" role="tab" data-deep-tab="teammates" aria-selected="false">Teammates</button>
+        <button type="button" role="tab" data-deep-tab="teammates" aria-selected="false">Mitspieler</button>
         <button type="button" role="tab" data-deep-tab="highlights" aria-selected="false">Highlights</button>
       </nav>
       <div class="deep-dive-content" id="deepDiveContent" tabindex="-1">
@@ -253,8 +249,8 @@
 
   <footer class="site-footer">
     <div class="shell footer-inner">
-      <img class="footer-logo" src="icons/levels/uebertreiber_logo.png" alt="Uebertr1eber">
-      <p>FACEIT Team Intelligence · automatisch aktualisiert</p>
+      <img class="footer-logo" src="icons/levels/uebertreiber_logo.png" alt="Uebertre1ber">
+      <p>FACEIT-Statistiken · automatisch aktualisiert</p>
       <span class="footer-credit">Dashboard by <a href="https://www.faceit.com/de/players/sha-" target="_blank" rel="noopener noreferrer">sha</a></span>
     </div>
   </footer>

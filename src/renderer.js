@@ -219,12 +219,12 @@ class Renderer {
 
     return `
     <div class="award-grid">
-${card("Duelist", awards.bestKD.name, `${awards.bestKD.value} K/D`, "target", "blue", 1)}
-${card("Headshot King", awards.bestHS.name, awards.bestHS.value, "burst", "yellow", 2)}
-${card("Damage Dealer", awards.bestADR.name, `${awards.bestADR.value} ADR`, "bolt", "violet", 3)}
-${card("Winner", awards.bestWinrate.name, `${awards.bestWinrate.value}% WR`, "trophy", "green", 4)}
-${card("Hot Hand", awards.longestStreak.name, `${awards.longestStreak.value}W`, "flame", "orange", 5)}
-${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeaths.value) ? awards.lowestDeaths.value : 0} Deaths`, "shield", "cyan", 6)}
+${card("Beste K/D", awards.bestKD.name, `${awards.bestKD.value} K/D`, "target", "blue", 1)}
+${card("Höchste HS-Quote", awards.bestHS.name, awards.bestHS.value, "burst", "yellow", 2)}
+${card("Höchste ADR", awards.bestADR.name, `${awards.bestADR.value} ADR`, "bolt", "violet", 3)}
+${card("Höchste Winrate", awards.bestWinrate.name, `${awards.bestWinrate.value}% WR`, "trophy", "green", 4)}
+${card("Längste Siegesserie", awards.longestStreak.name, `${awards.longestStreak.value}W`, "flame", "orange", 5)}
+${card("Wenigste Tode", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeaths.value) ? awards.lowestDeaths.value : 0} Tode`, "shield", "cyan", 6)}
     </div>`;
   }
 
@@ -267,7 +267,7 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
             </div>
           </div>
           <div class="ranking-elo">
-            <small>Current ELO</small>
+            <small>ELO</small>
             <strong class="elo-now">${Number(p.elo) || 0}</strong>
             <span class="elo-diff">±0</span>
           </div>
@@ -275,8 +275,8 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
             <span><small>K/D</small><strong data-card-stat="kd">${escapeHtml(recent.kd || '0.00')}</strong></span>
             <span><small>ADR</small><strong data-card-stat="adr">${escapeHtml(recent.adr || '0.0')}</strong></span>
             <span><small>Winrate</small><strong data-card-stat="winrate">${Number(recent.winratePct ?? Number.parseFloat(p.winrate)) || 0}%</strong></span>
-            <span><small>Headshots</small><strong data-card-stat="hs">${escapeHtml(recent.hsPercent || '0%')}</strong></span>
-            <span><small>Konstanz</small><strong data-card-stat="consistency">${Number(performance.consistency) || 0}%</strong></span>
+            <span><small>HS-Quote</small><strong data-card-stat="hs">${escapeHtml(recent.hsPercent || '0%')}</strong></span>
+            <span><small>Konstanz</small><strong data-card-stat="consistency">${Number(performance.consistency) || 0}/100</strong></span>
           </div>
           <div class="ranking-form-block">
             <div><small>Form · letzte 5</small><strong data-card-stat="form">${wins}/${last5.length || 0}</strong></div>
@@ -397,7 +397,7 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
 
     const mapBlock = mapPerformance && mapPerformance.length > 0 ? `
 <div class="mb-4">
-  <div class="detail-heading detail-map font-bold text-white/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('map', 'heading-svg')}<span>Map Performance</span></div>
+  <div class="detail-heading detail-map font-bold text-white/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('map', 'heading-svg')}<span>Map-Statistiken</span></div>
   <div class="bg-[#0a0a14] border border-white/5 rounded-xl overflow-hidden">
     <table class="w-full" style="border-spacing:0">
       <thead><tr class="border-b border-white/10">
@@ -459,7 +459,7 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
 
     const topMatesBlock = `
 <div class="mb-4">
-  <div class="detail-heading detail-mates font-bold text-white/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('users', 'heading-svg')}<span>Most played with</span></div>
+  <div class="detail-heading detail-mates font-bold text-white/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('users', 'heading-svg')}<span>Häufigste Mitspieler</span></div>
   <ul data-mate-list="played" class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
     ${matesList(topMates, 'count', 'G')}
   </ul>
@@ -467,7 +467,7 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
 
     const bestMatesBlock = `
 <div class="mb-4">
-  <div class="detail-heading detail-wins font-bold text-green-400/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('trophy', 'heading-svg')}<span>Most wins with</span></div>
+  <div class="detail-heading detail-wins font-bold text-green-400/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('trophy', 'heading-svg')}<span>Meiste gemeinsame Siege</span></div>
   <ul data-mate-list="wins" class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
     ${matesList(bestMates, 'wins', 'W')}
   </ul>
@@ -475,7 +475,7 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
 
     const worstMatesBlock = `
 <div class="mb-4">
-  <div class="detail-heading detail-losses font-bold text-red-400/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('skull', 'heading-svg')}<span>Most losses with</span></div>
+  <div class="detail-heading detail-losses font-bold text-red-400/60 mb-3 text-[10px] uppercase tracking-widest pl-1">${iconSvg('skull', 'heading-svg')}<span>Meiste gemeinsame Niederlagen</span></div>
   <ul data-mate-list="losses" class="bg-[#0a0a14] border border-white/5 rounded-xl p-1">
      ${matesList(worstMates, 'losses', 'L', true)}
   </ul>
@@ -501,7 +501,7 @@ ${card("Baiter", awards.lowestDeaths.name, `${Number.isFinite(awards.lowestDeath
           <span aria-hidden="true">${escapeHtml(item.icon)}</span>
           <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.text)}</small></div>
         </article>`).join("")
-      : `<p class="analytics-empty">Noch keine belastbare Auffälligkeit in den letzten Matches.</p>`;
+      : `<p class="analytics-empty">Noch kein eindeutiger Trend in den letzten Matches.</p>`;
     const analyticsBlock = `
 <div class="player-analytics">
   <div class="player-analytics-head">

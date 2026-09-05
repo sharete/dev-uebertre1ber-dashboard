@@ -60,13 +60,13 @@
     });
 
     const headings = [
-      { match: "PERFORMANCE WEB", label: "Performance Web", icon: "trend", className: "detail-performance" },
-      { match: "MAP PERFORMANCE", label: "Map Performance", icon: "map", className: "detail-map" },
+      { match: "PERFORMANCE WEB", label: "Leistungsprofil", icon: "trend", className: "detail-performance" },
+      { match: "MAP PERFORMANCE", label: "Map-Statistiken", icon: "map", className: "detail-map" },
       { match: "ELO TREND", label: "ELO-Trend · letzte 30 Matches", icon: "trend", className: "detail-trend" },
       { match: "ELO-TREND", label: "ELO-Trend · letzte 30 Matches", icon: "trend", className: "detail-trend" },
-      { match: "MOST PLAYED WITH", label: "Most played with", icon: "users", className: "detail-mates" },
-      { match: "MOST WINS WITH", label: "Most wins with", icon: "trophy", className: "detail-wins" },
-      { match: "MOST LOSSES WITH", label: "Most losses with", icon: "skull", className: "detail-losses" }
+      { match: "MOST PLAYED WITH", label: "Häufigste Mitspieler", icon: "users", className: "detail-mates" },
+      { match: "MOST WINS WITH", label: "Meiste gemeinsame Siege", icon: "trophy", className: "detail-wins" },
+      { match: "MOST LOSSES WITH", label: "Meiste gemeinsame Niederlagen", icon: "skull", className: "detail-losses" }
     ];
     document.querySelectorAll(".details-row .font-bold").forEach(element => {
       const content = text(element.textContent).toUpperCase().replace(/^\?+\s*/, "");
@@ -138,7 +138,7 @@
     setText("squad-active-count", active);
     setText("squad-positive-form", positiveForm);
     setText("squad-top-mover", mvp.dataset.nickname || "—");
-    setSignedText("squad-top-mover-diff", number(mvp.dataset.diff), " im Zeitraum");
+    setSignedText("squad-top-mover-diff", number(mvp.dataset.diff), " ELO im Zeitraum");
     setSignedText("hero-king-diff", number(leader.dataset.diff));
 
     const progress = document.getElementById("hero-king-progress");
@@ -715,7 +715,7 @@
       adr: recent.adr ?? "0.0",
       winrate: `${number(recent.winratePct)}%`,
       hs: recent.hsPercent ?? "0%",
-      consistency: `${number(performance.consistency)}%`,
+      consistency: `${number(performance.consistency)}/100`,
       form: last5.length ? `${wins}/${last5.length}` : "—",
       streak: number(data.streak?.count) ? `${number(data.streak.count)}${data.streak.type === "win" ? "W" : "L"}` : "—"
     };
@@ -823,7 +823,7 @@
       if (!insightGrid.children.length) {
         const empty = document.createElement("p");
         empty.className = "analytics-empty";
-        empty.textContent = `Keine belastbare Auffälligkeit in den letzten ${period} Matches.`;
+        empty.textContent = `Kein eindeutiger Trend in den letzten ${period} Matches.`;
         insightGrid.append(empty);
       }
     }
@@ -978,7 +978,7 @@
       [best(data => number(data.recent?.adr)), data => `${number(data.recent?.adr).toFixed(1)} ADR`],
       [best(data => number(data.recent?.winratePct)), data => `${number(data.recent?.winratePct)}% WR`],
       [best(data => data.streak?.type === "win" ? number(data.streak.count) : 0), data => `${number(data.streak?.count)}W`],
-      [lowest || { player: { nickname: "—" }, data: {} }, data => `${number(data.recent?.deaths)} Deaths`]
+      [lowest || { player: { nickname: "—" }, data: {} }, data => `${number(data.recent?.deaths)} Tode`]
     ];
     document.querySelectorAll("#awards-grid .award-card").forEach((card, index) => {
       const [candidate, formatter] = awardValues[index] || [];
@@ -1306,17 +1306,17 @@
       <article class="deep-insight"><span>${escapeUi(insight.icon || "•")}</span><div><strong>${escapeUi(insight.title || "Hinweis")}</strong><small>${escapeUi(insight.text || "")}</small></div></article>`).join("");
     content.innerHTML = `
       <section class="deep-kpis" aria-label="Leistungskennzahlen der letzten ${state.analysisPeriod} Matches">
-        <article><span>K/D Ratio</span><strong>${escapeUi(recent.kd || "0.00")}</strong><small>${number(recent.kills)} Kills · ${number(recent.deaths)} Deaths</small></article>
+        <article><span>K/D</span><strong>${escapeUi(recent.kd || "0.00")}</strong><small>${number(recent.kills)} Kills · ${number(recent.deaths)} Tode</small></article>
         <article><span>ADR</span><strong>${escapeUi(recent.adr || "0.0")}</strong><small>${number(recent.assists)} Assists · ${number(recent.matches)} Matches</small></article>
         <article class="deep-winrate"><span>Winrate</span><strong>${number(recent.winratePct)}%</strong><i style="--value:${number(recent.winratePct)}"></i><small>${number(recent.wins)} Siege</small></article>
-        <article><span>Current ELO</span><strong>${number(profile.elo).toLocaleString("de-DE")}</strong><small>Peak ${number(personal.peakElo, profile.elo).toLocaleString("de-DE")}</small></article>
+        <article><span>ELO</span><strong>${number(profile.elo).toLocaleString("de-DE")}</strong><small>Peak ${number(personal.peakElo, profile.elo).toLocaleString("de-DE")}</small></article>
       </section>
-      <section class="deep-profile-strip" aria-label="Rollen- und Impact-Profil">
-        <article class="profile-role"><span>Rollenprofil</span><strong>${escapeUi(role.label)}</strong><small>${escapeUi(role.description)}</small></article>
-        <article><span>Konstanz</span><strong>${number(performance.consistency)}%</strong><small>Streuung von K/D, ADR und ELO</small></article>
-        <article><span>Entry Success</span><strong>${number(recent.entrySuccess)}%</strong><small>${number(recent.entryWins)} gewonnene Entries</small></article>
+      <section class="deep-profile-strip" aria-label="Statistisches Spielprofil">
+        <article class="profile-role"><span>Statistisches Spielprofil</span><strong>${escapeUi(role.label)}</strong><small>${escapeUi(role.description)}</small></article>
+        <article><span>Konstanz</span><strong>${number(performance.consistency)}%</strong><small>Eigener Score (0–100) aus verfügbaren K/D-, ADR- und ELO-Schwankungen. Höher = konstanter.</small></article>
+        <article><span>Entry-Erfolgsquote</span><strong>${number(recent.entrySuccess)}%</strong><small>${number(recent.entryWins)} gewonnene Entries</small></article>
         <article><span>Clutches</span><strong>${number(recent.clutches)}</strong><small>${number(performance.clutchesPerMatch).toFixed(2)} pro Match</small></article>
-        <article><span>Utility / Match</span><strong>${number(performance.utilityPerMatch)}</strong><small>${number(recent.utilityDamage)} Damage gesamt</small></article>
+        <article><span>Utility-Schaden / Match</span><strong>${number(performance.utilityPerMatch)}</strong><small>${number(recent.utilityDamage)} Schaden gesamt</small></article>
       </section>
       <section class="deep-overview-grid">
         <article class="deep-level-card">
@@ -1331,7 +1331,7 @@
             <div><dt>Region</dt><dd>${escapeUi(text(profile.region).toUpperCase() || "—")}</dd></div>
             <div><dt>Land</dt><dd class="country-value">${flagMarkup(profile.country)}<span>${escapeUi(countryName(profile.country))}</span></dd></div>
             <div><dt>FACEIT seit</dt><dd>${escapeUi(created)}</dd></div>
-            <div><dt>Lifetime Matches</dt><dd>${number(profile.lifetimeMatches).toLocaleString("de-DE")}</dd></div>
+            <div><dt>Matches insgesamt</dt><dd>${number(profile.lifetimeMatches).toLocaleString("de-DE")}</dd></div>
             <div><dt>Datenabdeckung</dt><dd>${number(quality.matchCoverage)}%</dd></div>
             <div><dt>Letztes Match</dt><dd>${escapeUi(relativeTime(profile.lastMatchTs))}</dd></div>
           </dl>
@@ -1341,7 +1341,7 @@
         <div><span>ELO-Verlauf</span><small>Letzte ${state.analysisPeriod} Matches · ${history.length} Werte</small></div>
         <div class="deep-chart-wrap"><canvas id="deepDiveTrend" aria-label="ELO-Verlauf von ${escapeUi(profile.nickname)}"></canvas><p class="deep-chart-empty" hidden>Zu wenig Verlaufsdaten.</p></div>
       </section>
-      <section class="deep-insights">${insights || '<p class="deep-empty">Keine belastbare Auffälligkeit in diesem Zeitraum.</p>'}</section>`;
+      <section class="deep-insights">${insights || '<p class="deep-empty">Kein eindeutiger Trend in diesem Zeitraum.</p>'}</section>`;
 
     state.deepDive.chart?.destroy();
     state.deepDive.chart = null;
@@ -1586,7 +1586,7 @@
       });
     };
     wire("metrics-toggle", "playerTableBody", "show-metrics", "Mehr Kennzahlen", "Kompakte Ansicht");
-    wire("insights-toggle", "global-insights", "show-all", "Weitere Auffälligkeiten", "Weniger Auffälligkeiten");
+    wire("insights-toggle", "global-insights", "show-all", "Weitere Trends", "Weniger Trends");
     wire("awards-toggle", "awards-grid", "show-all", "Alle Auszeichnungen anzeigen", "Weniger Auszeichnungen");
     const context = document.getElementById("filter-context");
     const updateContext = () => {

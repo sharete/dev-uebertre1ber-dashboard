@@ -34,10 +34,10 @@ assert.doesNotMatch(generated, /cdn\.jsdelivr\.net\/npm\/chart\.js/);
 assert.match(generated, /href="dashboard\.css(?:\?v=[^"]+)?"/);
 assert.match(generated, /dashboard\.css\?v=[a-f0-9]{12}/);
 assert.doesNotMatch(generated, /Crew Ranking/);
-assert.match(generated, />Baiter</);
+assert.match(generated, />Wenigste Tode</);
 assert.match(generated, /class="award-icon"/);
 assert.doesNotMatch(generated, /class="award-icon"[^>]*>\?+/);
-assert.match(generated, /Last Update:/);
+assert.match(generated, /Zuletzt aktualisiert:/);
 assert.match(generated, /Dashboard by <a [^>]*>sha<\/a>/);
 assert.match(generated, /id="formSort"/);
 assert.match(generated, /id="global-insights"/);
@@ -125,7 +125,7 @@ const awardHtml = renderer.renderAwards({
 });
 assert.match(awardHtml, /class="award-svg"/);
 assert.match(awardHtml, /award-orange/);
-assert.match(awardHtml, />Baiter</);
+assert.match(awardHtml, />Wenigste Tode</);
 assert.doesNotMatch(awardHtml, />Survivor</);
 assert.doesNotMatch(awardHtml, /\?\?/);
 
@@ -295,3 +295,15 @@ for (const players of [[], [{ nickname: "First", recent: { matches: 30, deaths: 
     document: { querySelectorAll: () => [] }
   });
 }
+
+// Product copy must describe the measured values without implying live data or a percentage score.
+for (const source of [template, generated]) {
+  assert.doesNotMatch(source, /Live Data|Live Performance Tracking|Performance Leaders|Team Intelligence|Uebertr1eber/);
+  assert.match(source, /Ø ELO/);
+  assert.match(source, /Bester ELO-Trend/);
+  assert.match(source, /Ausgewertete Matches/);
+}
+assert.doesNotMatch(generated, /data-card-stat="consistency">[0-9]+%/);
+assert.match(generated, /data-card-stat="consistency">[0-9]+\/100/);
+assert.match(dashboardScript, /Statistisches Spielprofil/);
+assert.match(dashboardScript, /Utility-Schaden \/ Match/);
