@@ -1609,6 +1609,30 @@
     updateContext();
   };
 
+  // Keep the section indicator in sync with scrolling without changing navigation.
+  const setupWorkspaceNavigation = () => {
+    const links = [...document.querySelectorAll('.primary-nav a')];
+    const sections = links.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    let scheduled = false;
+    const update = () => {
+      scheduled = false;
+      let active = sections[0];
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top <= 140) active = section;
+      }
+      links.forEach(link => {
+        if (link.getAttribute('href') === '#' + active?.id) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+    };
+    window.addEventListener('scroll', () => {
+      if (!scheduled) { scheduled = true; window.requestAnimationFrame(update); }
+    }, { passive: true });
+    window.addEventListener('hashchange', update);
+    update();
+  };
+
+  setupWorkspaceNavigation();
   createComparisonChips();
   waitForCharts();
   upgradeInterfaceIcons();

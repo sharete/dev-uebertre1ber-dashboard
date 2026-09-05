@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#070809">
+  <meta name="theme-color" content="#141619">
   <meta name="color-scheme" content="dark">
   <title>Uebertre1ber — FACEIT-Dashboard</title>
   <meta name="description" content="Ranking, Form, Spielprofile und Match-Analysen der Uebertre1ber-Crew.">
@@ -27,34 +27,44 @@
   <a class="skip-link" href="#leaderboard">Zum Ranking springen</a>
 
   <header class="site-header">
-    <div class="header-inner shell">
-      <a class="legacy-brand" href="#top" aria-label="Uebertre1ber Startseite">
-        <img src="icons/levels/uebertreiber_logo.png" alt="Uebertre1ber ELO Dashboard">
+    <div class="header-inner">
+      <a class="workspace-brand" href="#top" aria-label="Uebertre1ber Startseite">
+        <span class="brand-symbol" aria-hidden="true">U1</span>
+        <span class="brand-copy"><strong>Uebertre1ber</strong><small>Team Dashboard</small></span>
       </a>
+      <p class="nav-label">TEAM-STATISTIKEN</p>
       <nav class="primary-nav" aria-label="Hauptnavigation">
-        <a href="#leaderboard">Spieler</a>
-        <a href="#standouts">Bestwerte</a>
-        <a href="#elo-vergleich">Vergleich</a>
+        <a href="#top" aria-current="location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Übersicht</span></a>
+        <a href="#leaderboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m2-16a3 3 0 0 1 0 6m2 4a5 5 0 0 1 2 4v2"/></svg><span>Spieler</span></a>
+        <a href="#standouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v6a4 4 0 0 1-8 0V3Zm0 2H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 2v5m-4 3h8m-6-3h4"/></svg><span>Bestwerte</span></a>
+        <a href="#elo-vergleich"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18h17M8 15l4-5 4 3 5-8"/></svg><span>Vergleich</span></a>
       </nav>
+      <div class="rail-bottom">
+        <div class="game-label"><b>CS2</b><span>Counter-Strike 2</span></div>
+        <p>Statistiken von FACEIT</p>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="shell workspace-topbar">
+      <div class="workspace-path"><span>Uebertre1ber</span><span aria-hidden="true">/</span><strong>Team Dashboard</strong></div>
       <div class="header-status">
         <span class="live-dot" aria-hidden="true"></span>
         <span>Zuletzt aktualisiert</span>
         <time><!-- INSERT_LAST_UPDATED --></time>
       </div>
     </div>
-  </header>
-
-  <main id="top">
     <section class="shell command-bar first-section" aria-labelledby="dashboard-title">
       <div class="command-copy">
-        <p class="kicker">FACEIT-STATS</p>
-        <h1 id="dashboard-title">Uebertre1ber</h1>
+        <p class="kicker">UEBERTRE1BER / FACEIT</p>
+        <h1 id="dashboard-title">Teamübersicht</h1>
         <div class="team-meta">
           <span><!-- INSERT_PLAYER_COUNT --> Spieler</span>
           <span>Counter-Strike 2</span>
         </div>
       </div>
-
+      <a class="overview-tag" href="#elo-vergleich">Spieler vergleichen <span aria-hidden="true">↗</span></a>
     </section>
 
     <section class="shell squad-pulse" aria-label="Teamübersicht">
@@ -145,6 +155,7 @@
       </div>
 
       <div class="table-shell">
+        <div class="ranking-columns" aria-hidden="true"><span>#</span><span>Spieler</span><span>ELO</span><span>Form · letzte 5</span><span></span></div>
         <div class="table-scroll">
           <table class="ranking-table">
             <thead class="sr-only">
@@ -249,7 +260,6 @@
 
   <footer class="site-footer">
     <div class="shell footer-inner">
-      <img class="footer-logo" src="icons/levels/uebertreiber_logo.png" alt="Uebertre1ber">
       <p>FACEIT-Statistiken · automatisch aktualisiert</p>
       <span class="footer-credit">Dashboard by <a href="https://www.faceit.com/de/players/sha-" target="_blank" rel="noopener noreferrer">sha</a></span>
     </div>
